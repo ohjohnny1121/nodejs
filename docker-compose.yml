@@ -4,6 +4,8 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: pwd123
+      MYSQL_USER: user
+      MYSQL_PASSWORD: pwd123
 
     volumes:
       - /d/sn-mysql:/var/lib/mysql  # 本地 SSD 位置
