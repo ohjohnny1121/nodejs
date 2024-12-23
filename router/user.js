@@ -45,6 +45,11 @@ router.post('/login', async (req, res) => {
     console.log(args);
     // args.EMPID = 'A4378';
     // args.PWD = '16736';
+    //給我一個現在時間的函式
+    const now = new Date();
+    console.log('現在時間',now);
+    const time=now.getTime()
+    console.log('時間戳',time);
     try {
         // 建立 SOAP 客戶端
         const client = await new Promise((resolve, reject) => {
@@ -65,11 +70,7 @@ router.post('/login', async (req, res) => {
                 }
             });
         });
-        //給我一個現在時間的函式
-        const now = new Date();
-        console.log('現在時間',now);
-        const time=now.getTime()
-        console.log('時間戳',time);
+        
         
 
         // 調用 SOAP 服務
@@ -95,18 +96,21 @@ router.post('/login', async (req, res) => {
         if (result.Myumt_AuthResult.Status === false) {
             return res.status(401).json({ status: 'error', message: '用戶不存在或帳號密碼錯誤，請重新輸入' ,time});
         }
-
+        
         // 生成 JWT token
         const { id, name, DeptName,email,d1name } = result.Myumt_AuthResult;
-        const whitelist = await queryFunc(connection, sqlStr);
-        const authority = whitelist.map(item => item.authority).push(d1name);
-
-        const token = jwt.sign({ id, name, DeptName,email,authority }, key);
         // 獲取白名單
         const connection = await mysqlConnection(getDbConfig('user'));
-
         // 先將現有權限標記為刪除
         const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false' AND uid = '${id}'`;
+        const whitelist = await queryFunc(connection, sqlStr);
+        const authority = whitelist.map(item => item.authority);
+        authority.push(d1name);
+
+        const token = jwt.sign({ id, name, DeptName,email,authority }, key);
+        
+
+        
         // console.log(sqlStrrevise);
         
         result.Myumt_AuthResult.authority = authority;
@@ -207,10 +211,12 @@ router.post('/revisewhitelist', async (req, res) => {
     const date = new Date(time);
     const dateStr = date.toISOString().slice(0, 19).replace('T', ' ');
     console.log(dateStr);
+    let connection;
+
+    
     try {
         const { uid, authority, creator } = req.body;
-        console.log(req.body);
-        // 驗證必要參數
+        console.log(uid, authority, creator);
         if (!uid || !authority || !creator) {
             return res.status(400).json({
                 status: 'error',
@@ -219,12 +225,11 @@ router.post('/revisewhitelist', async (req, res) => {
             });
         }
 
-        const connection = await mysqlConnection(getDbConfig('user'));
-    
-        // 使用事務確保數據一致性
-        // await connection.beginTransaction();
+        // 獲取連接
+        connection = await mysqlConnection(getDbConfig('user'));
         
         try {
+            await connection.beginTransaction();
             // 先將現有權限標記為刪除
             const sqlStrrevise = `UPDATE Whitelist SET isdelete = 'true' WHERE uid = '${uid}'`;
             // console.log(sqlStrrevise);
@@ -239,37 +244,41 @@ router.post('/revisewhitelist', async (req, res) => {
                 const sqlStrinsert = `
                     INSERT INTO Whitelist (id,uid, authority, creator, isdelete,time) 
                     VALUES ('${id}','${uid}', '${auth}', '${creator}', 'false','${dateStr}')`;
-                    // console.log(sqlStrinsert);
+                    console.log(sqlStrinsert);
                 await queryFunc(connection, sqlStrinsert);
             }
             
-            // 提交事務
-            // await connection.commit();
+            await connection.commit();
             
             res.status(200).json({
                 status: 'success',
                 message: '成功',
-                data: {
-                    uid,
-                    authority,
-                    creator
-                },
+                data: { uid, authority, creator },
                 time
             });
             
         } catch (error) {
-            // 如果出錯，回滾事務
-            await connection.rollback();
+            if (connection) {
+                await connection.rollback();
+            }
             throw error;
         }
         
     } catch (error) {
-        console.error('記錄創建失敗:', error);
+        console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
-            message: '記錄創建失敗',
+            message: error.message || '記錄創建失敗',
             time
         });
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (err) {
+                console.error('釋放連接失敗:', err);
+            }
+        }
     }
 });
 
