@@ -50,6 +50,7 @@ router.post('/login', async (req, res) => {
     console.log('現在時間',now);
     const time=now.getTime()
     console.log('時間戳',time);
+    let connection;
     try {
         // 建立 SOAP 客戶端
         const client = await new Promise((resolve, reject) => {
@@ -100,8 +101,7 @@ router.post('/login', async (req, res) => {
         // 生成 JWT token
         const { id, name, DeptName,email,d1name } = result.Myumt_AuthResult;
         // 獲取白名單
-        const connection = await mysqlConnection(getDbConfig('user'));
-        // 先將現有權限標記為刪除
+        connection = await mysqlConnection(getDbConfig('user'));
         const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false' AND uid = '${id}'`;
         const whitelist = await queryFunc(connection, sqlStr);
         const authority = whitelist.map(item => item.authority);
@@ -131,16 +131,38 @@ router.post('/login', async (req, res) => {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
             time, 
         });
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (err) {
+                console.error('釋放連接失敗:', err);
+            }
+        }
     }
 });
 
 // 獲取白名單
 router.get('/getwhitelist', async (req, res) => {
-    const time=new Date().getTime()
-    const connection = await mysqlConnection(getDbConfig('user'));
-    const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false'`;
-    const result = await queryFunc(connection, sqlStr);
-    res.json({status:'success',message:'成功',data:result,time});
+    const time = new Date().getTime();
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('user'));
+        const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.json({status: 'success', message: '成功', data: result, time});
+    } catch (error) {
+        console.error('獲取白名單失敗:', error);
+        res.status(500).json({status: 'error', message: '獲取失敗', time});
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (err) {
+                console.error('釋放連接失敗:', err);
+            }
+        }
+    }
 });
 
 // Token 驗證中間件
@@ -168,38 +190,56 @@ router.get('/verify', verifyToken, (req, res) => {
 
 // 記錄路由
 router.post('/record', verifyToken, async (req, res) => {
-    const time=new Date().getTime()
+    const time = new Date().getTime();
+    let connection;
     try {
         const { ID, Name, DeptName, Time, Path } = req.body;
-        const connection = await mysqlConnection(getDbConfig('user'));
+        connection = await mysqlConnection(getDbConfig('user'));
         
         const sqlStr = `INSERT INTO user_record(ID, Name, DeptName, Time, Path) 
                        VALUES (?, ?, ?, ?, ?)`;
         const result = await queryFunc(connection, sqlStr, [ID, Name, DeptName, Time, Path]);
         
-        res.json({status:'success',message:'成功',data:result,time});
+        res.json({status: 'success', message: '成功', data: result, time});
     } catch (error) {
         console.error('記錄創建失敗:', error);
-        res.status(500).json({ status: 'error', message: '記錄創建失敗' ,time});
+        res.status(500).json({status: 'error', message: '記錄創建失敗', time});
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (err) {
+                console.error('釋放連接失敗:', err);
+            }
+        }
     }
 });
 
 // 獲取記錄數量
 router.get('/record/:st', verifyToken, async (req, res) => {
-    const time=new Date().getTime()
+    const time = new Date().getTime();
+    let connection;
     try {
         const { st } = req.params;
-        const connection = await mysqlConnection(getDbConfig('user'));
+        connection = await mysqlConnection(getDbConfig('user'));
         const transSt = timestampToYMDHIS(new Date(Number(st)));
         
         const sqlStr = `SELECT Count(*) as Count FROM user_record 
                        WHERE Path = '/login' AND Time >= ?`;
         const result = await queryFunc(connection, sqlStr, [transSt]);
         
-        res.json({status:'success',message:'成功',data:result,time});
+        res.json({status: 'success', message: '成功', data: result, time});
     } catch (error) {
         console.error('記錄查詢失敗:', error);
-        res.status(500).json({ status: 'error', message: '記錄查詢失敗' ,time});
+        res.status(500).json({status: 'error', message: '記錄查詢失敗', time});
+    } finally {
+        if (connection) {
+            try {
+                connection.release();
+            } catch (err) {
+                console.error('釋放連接失敗:', err);
+            }
+        }
     }
 });
 
