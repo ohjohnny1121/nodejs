@@ -5,7 +5,7 @@ const port = 3000;
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
-
+const { hostname } = require('os');
 
 // 初始化資料庫
 const initDatabase = async () => {
@@ -16,6 +16,7 @@ const initDatabase = async () => {
         app.use('/daily/aoi', require('./daily/aoi.js'));
         app.use('/user', require('./router/user.js'));
         app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+        
         // 簡單的 API 路由
         app.get('/', (req, res) => {
             res.send('chi666667');
@@ -33,8 +34,8 @@ const initDatabase = async () => {
         });
 
         // 在資料庫初始化成功後才啟動 Express 服務器
-        app.listen(port, () => {
-            console.log(`Server is running on http://localhost:${port}`);
+        app.listen(port, hostname, () => {
+            console.log(`Server is running on http://${hostname}:${port}`);
         });
     } catch (error) {
         console.error('資料庫初始化失敗:', error);

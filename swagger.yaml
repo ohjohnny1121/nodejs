@@ -5,9 +5,15 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://10.22.94.69:3000
-  # - url: http://localhost:3000
-    description: 開發環境
+  - url: http://{host}:3000
+    description: API 服務器
+    variables:
+      host:
+        default: 10.22.94.69
+        enum:
+          - 10.22.94.69          
+          - WYM2DNA4378 # 你的本機 IP
+        description: 服務器主機名
 
 components:
   securitySchemes:
@@ -252,7 +258,7 @@ paths:
               properties:
                 ID:
                   type: string
-                  description: ���戶ID
+                  description: 用戶ID
                 Name:
                   type: string
                   description: 用戶名稱
