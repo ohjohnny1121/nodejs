@@ -95,6 +95,8 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         } catch (error) {
             if (connection) {
                 await connection.rollback();
+                console.log('回滾');
+                await connection.release();
             }
             throw error;
         }

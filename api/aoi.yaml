@@ -4,19 +4,12 @@ info:
   version: 1.0.0
   description: API for retrieving AOI daily data
 servers:
-  - url: http://{host}:3000
-    description: API 服務器
-    variables:
-      host:
-        default: 10.22.94.69
-        enum:
-          - 10.22.94.69          
-          - WYM2DNA4378 # 你的本機 IP
-        description: 服務器主機名
-
-
+  - url: http://WYM2DNA4378:3000
+    description: 本地服務器
+  - url: http://10.22.94.69:3000
+    description: 內部網絡服務器
 paths:
-  /aoidaily/{startDate}/{endDate}:
+  /aoi/aoidaily/{startDate}/{endDate}/{factory}:
     get:
       summary: Retrieve AOI daily data
       parameters:
@@ -24,16 +17,22 @@ paths:
           name: startDate
           required: true
           schema:
-            type: string
-            format: date
-          description: Start date in YYYY-MM-DD format
+            type: integer
+            format: int64
+          description: Start date as a timestamp
         - in: path
           name: endDate
           required: true
           schema:
+            type: integer
+            format: int64
+          description: End date as a timestamp
+        - in: path
+          name: factory
+          required: true
+          schema:
             type: string
-            format: date
-          description: End date in YYYY-MM-DD format
+          description: Factory identifier
       responses:
         '200':
           description: Success
@@ -51,7 +50,8 @@ paths:
                     items:
                       type: object
                   time:
-                    type: integer
+                    type: string
+                    format: date-time
         '400':
           description: Missing parameters
           content:
@@ -64,7 +64,8 @@ paths:
                   message:
                     type: string
                   time:
-                    type: integer
+                    type: string
+                    format: date-time
         '500':
           description: Internal server error
           content:
@@ -77,4 +78,5 @@ paths:
                   message:
                     type: string
                   time:
-                    type: integer 
+                    type: string
+                    format: date-time 
