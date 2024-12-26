@@ -39,14 +39,14 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 router.use(bodyParser.json());
 
 
-router.get('/aoidaily/:startDate/:endDate', async (req, res) => {
+router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
 
     
     let connection;
 
     
     try {
-        const { startDate, endDate } = req.params;
+        const { startDate, endDate, factory } = req.params;
         const startTimestamp = Number(startDate);
         const endTimestamp = Number(endDate);   
         console.log(startTimestamp,convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
@@ -65,7 +65,7 @@ router.get('/aoidaily/:startDate/:endDate', async (req, res) => {
             await connection.beginTransaction();
             
             // 生成開始日期和結束日期
-            const sqlStr = `SELECT * FROM aoi_yield_defect WHERE time >= '${convertTimestampToFormattedDate(startTimestamp)}' AND time <= '${convertTimestampToFormattedDate(endTimestamp)}'`;
+            const sqlStr = `SELECT *, DATE_FORMAT(time, '%Y-%m-%d %H:%i:%s') as time FROM aoi_yield_defect WHERE time >= '${convertTimestampToFormattedDate(startTimestamp)}' AND time <= '${convertTimestampToFormattedDate(endTimestamp)}' AND factory = '${factory}'`;
             console.log(sqlStr);
             const result = await queryFunc(connection, sqlStr);
             
