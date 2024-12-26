@@ -58,7 +58,7 @@ function convertTimestampToFormattedDate(input) {
     }
 
     const date = new Date(timestamp);
-    const year = date.getUTCFullYear()+1; // 使用 UTC 年份
+    const year = date.getUTCFullYear(); // 使用 UTC 年份
     const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // 使用 UTC 月份
     const day = String(date.getUTCDate()).padStart(2, '0'); // 使用 UTC 日期
     const hours = String(date.getUTCHours()).padStart(2, '0'); // 使用 UTC 小時
