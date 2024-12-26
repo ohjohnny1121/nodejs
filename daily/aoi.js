@@ -35,7 +35,7 @@ router.get("/trigger", async (req, res) => {
   const aoiconn = await mysqlConnection(getDbConfig('aoi'));
   const triggerData = await queryFunc(aoiconn, `SELECT * FROM sn_aoi_trigger `);
   console.log(triggerData);
-    res.json(triggerData);
+  res.json(triggerData);
 });
 
 
@@ -50,7 +50,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 1);
+      startTime.setDate(startTime.getDate() - 30);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);

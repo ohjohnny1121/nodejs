@@ -11,7 +11,12 @@ const { dailyAdd, stackAdd } = require('./daily/dailyFunc.js');
 
 // 獲取主機名稱
 const hostname = os.hostname();
-
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', ['http://localhost:5173', 'http://localhost:3000']);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+  });  
 // 設定 API 基礎 URL
 const API_BASE_URL = process.env.API_BASE_URL || `http://${hostname}:3000`;
 
@@ -20,7 +25,7 @@ const swaggerAoi = YAML.load(path.join(__dirname, 'api', 'aoi.yaml'));
 const swaggerUser = YAML.load(path.join(__dirname, 'api', 'user.yaml'));
 
 // 設定每天早上 8:30 執行
-cron.schedule('55 42 10 * * *', async () => {
+cron.schedule('30 53 14 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
