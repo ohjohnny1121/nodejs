@@ -326,16 +326,16 @@ const sqlSnReadOut = `
         const uniqueAosAftCount = new Set(aosaftData.map(d => d.BoardNo + d.VrsCode)).size;
   
         // 檢查 Core Layer
-        let checkCoreLayer = "";
-        if (LayerType === "CORE") {
-          const index = ymlotCheck.findIndex((c) => {
-            const layerArray = c.LayerName.split("L");
-            return c.LotNum === LotNum && (layerArray[2] - layerArray[1] + 1) / 2 === 1;
-          });
-          if (index !== -1) {
-            checkCoreLayer = ymlotCheck[index].LayerName;
-          }
-        }
+        // let checkCoreLayer = "";
+        // if (LayerType === "CORE") {
+        //   const index = ymlotCheck.findIndex((c) => {
+        //     const layerArray = c.LayerName.split("L");
+        //     return c.LotNum === LotNum && (layerArray[2] - layerArray[1] + 1) / 2 === 1;
+        //   });
+        //   if (index !== -1) {
+        //     checkCoreLayer = ymlotCheck[index].LayerName;
+        //   }
+        // }
   
         const { OldLotNum, Lot_type } = ymlotCheck.find(c => c.LotNum === LotNum) || {};
   
@@ -343,14 +343,14 @@ const sqlSnReadOut = `
         Object.assign(Obj, {
           bef_Yield: (1 - uniqueAosBefCount / Number(qty)).toFixed(4),
           Yield: (1 - uniqueAosAftCount / Number(qty)).toFixed(4),
-          Remark: `${LotNum}_${LayerType === "CORE" ? checkCoreLayer : LayerName}`,
+          Remark: `${LotNum}_${LayerName}`,
           PartNo,
           LotType,
           LotNum,
           OldLotNum,
           LotType: Lot_type,
-          Layer: LayerType === "CORE" ? checkCoreLayer : LayerName,
-          AOILayer: LayerName,
+          Layer: LayerName,
+          // AOILayer: LayerName,
           Time: timestampToYMDHIS(ChangeTime),
           ProdClass,
           Factory: "SN",
