@@ -38,6 +38,33 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 
+router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
+    const { lotnum, remark } = req.params;
+    console.log(lotnum, remark);
+    try {
+        const connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lotnum = '${lotnum}'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
+
+
 
 router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
 
@@ -65,7 +92,32 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             await connection.beginTransaction();
             
             // 生成開始日期和結束日期
-            const sqlStr = `SELECT *, DATE_FORMAT(time, '%Y-%m-%d %H:%i:%s') as time FROM aoi_yield_defect WHERE time >= '${convertTimestampToFormattedDate(startTimestamp)}' AND time <= '${convertTimestampToFormattedDate(endTimestamp)}' AND factory = '${factory}'`;
+            const sqlStr = `SELECT 
+                            factory,
+                            prod_class,
+                            lot_num,
+                            triger,
+                            bef_yield,
+                            yield,
+                            DATE_FORMAT(time, '%Y-%m-%d %H:%i:%s') as time,
+                            c_top_1,
+                            c_top1,
+                            c_top_2,
+                            c_top2,
+                            c_top_3,
+                            c_top3,
+                            s_top_1,
+                            s_top1,
+                            s_top_2,
+                            s_top2,
+                            s_top_3,
+                            s_top3,
+                            remark,
+                            mp_lt_x*mp_lt_y upp
+                            FROM aoi_yield_defect 
+                            WHERE time >= '${convertTimestampToFormattedDate(startTimestamp)}' 
+                            AND time <= '${convertTimestampToFormattedDate(endTimestamp)}' 
+                            AND factory = '${factory}'`;
             console.log(sqlStr);
             const result = await queryFunc(connection, sqlStr);
             

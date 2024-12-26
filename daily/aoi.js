@@ -343,7 +343,7 @@ const sqlSnReadOut = `
         Object.assign(Obj, {
           bef_Yield: (1 - uniqueAosBefCount / Number(qty)).toFixed(4),
           Yield: (1 - uniqueAosAftCount / Number(qty)).toFixed(4),
-          Remark: `${LotNum}_${LayerName}`,
+          Remark: "", // 預設為空
           PartNo,
           LotType,
           LotNum,
@@ -357,7 +357,6 @@ const sqlSnReadOut = `
           triger,
           MpLtX: mpLtX,
           MpLtY: mpLtY,
-          value: ""
         });
         
         summaryData.push(Obj);
@@ -388,7 +387,6 @@ const sqlSnReadOut = `
             'time',
             'prod_class',
             'triger',
-            'value',
             'mp_lt_x',
             'mp_lt_y',
           ]
