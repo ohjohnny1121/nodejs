@@ -24,8 +24,8 @@ const API_BASE_URL = process.env.API_BASE_URL || `http://${hostname}:3000`;
 const swaggerAoi = YAML.load(path.join(__dirname, 'api', 'aoi.yaml'));
 const swaggerUser = YAML.load(path.join(__dirname, 'api', 'user.yaml'));
 
-// 設定每天早上 8:30 執行
-cron.schedule('30 53 14 * * *', async () => {
+// 設定每天早上 8:00 執行
+cron.schedule('10 23 17 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
