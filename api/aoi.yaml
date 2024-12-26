@@ -1,0 +1,80 @@
+openapi: 3.0.0
+info:
+  title: AOI API
+  version: 1.0.0
+  description: API for retrieving AOI daily data
+servers:
+  - url: http://{host}:3000
+    description: API 服務器
+    variables:
+      host:
+        default: 10.22.94.69
+        enum:
+          - 10.22.94.69          
+          - WYM2DNA4378 # 你的本機 IP
+        description: 服務器主機名
+
+
+paths:
+  /aoidaily/{startDate}/{endDate}:
+    get:
+      summary: Retrieve AOI daily data
+      parameters:
+        - in: path
+          name: startDate
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Start date in YYYY-MM-DD format
+        - in: path
+          name: endDate
+          required: true
+          schema:
+            type: string
+            format: date
+          description: End date in YYYY-MM-DD format
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: integer
+        '400':
+          description: Missing parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: integer
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: integer 
