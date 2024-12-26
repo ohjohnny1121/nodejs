@@ -4,11 +4,14 @@ const { timestampToYMDHIS, timestampToYMDHIS2 } = require("../time");
 const { mysqlConnection, queryFunc } = require("../mysql");
 const { poolObj, initializePools } = require("../mssql");
 const getDbConfig = require('../config/database');
-
+const { convertToCamelCase } = require('../utils/formatters');
 const router = express.Router();
 
 // 初始化連接池變數
 let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
+
+
+
 
 router.use(async (req, res, next) => {
     try {
@@ -37,6 +40,7 @@ router.get("/trigger", async (req, res) => {
 
 
 router.get("/sndailyadd", async (req, res) => {
+  let aoiconn = null;
     try {
       
       const endTime = new Date();
@@ -89,10 +93,7 @@ const sqlSnReadOut = `
     //
     const lotnumList = [...new Set(snReadOutResult.recordset.map(i => i.lotnum.trim()))];
     const sqlStringLotNum = `'${lotnumList.join("','")}'`;
-    // res.json(lotnumList);
-    // console.log(sqlString);
-    // res.json(sqlString);
-    // console.log(snReadOutResult.recordset);
+    
     // 第二次查詢：比對 YM 和 H3 的批號
     const sqlissueDtl = `SELECT DISTINCT OldLotNum,trim(LotNum)LotNum
     FROM PDL_IssueDtl 
@@ -102,12 +103,11 @@ const sqlSnReadOut = `
     
 
 
-    // res.json(sqlissueDtl);
+
     const issueDtlResult = await poolSNAcme.query(sqlissueDtl);
     const compareLotNum = issueDtlResult.recordset.map(i => i.LotNum.trim());
 
     snReadOutResult.recordset.forEach(i => {
-      // console.log(i.lotnum.trim(),' ',i.lotnum.trim().slice(4,5));
       if(i.lotnum.trim().slice(4,5)==='6'){
         i.Factory = "S2";
       }else if(i.lotnum.trim().slice(4,5)==='D'){
@@ -134,68 +134,7 @@ const sqlSnReadOut = `
       }
 
     });
-    // res.json(snReadOutResult.recordset);
-    // res.json(issueDtlResult.recordset);
-      // console.log(issueDtlResult.recordset);
-    // res.json(issueDtlResult.recordset);
-
-      // // 查詢 YM 代工物料
-      // const sqlym = `SELECT DISTINCT partnum,lotnum,n.LayerName,proccode,AftStatus,ITypeName Lot_type FROM PDL_CKHistory h
-      //   INNER JOIN NumofLayer(nolock)n ON h.Layer=n.Layer
-      //   INNER JOIN ClassIssType(nolock)t ON h.isstype=t.ITypeCode
-      //   WHERE proccode='CHG11' 
-      //   AND AftStatus='MoveIn' 
-      //   AND location LIKE '%SN%' 
-      //   AND LEFT(partnum,4)<>'UMGL'`;
-        
-    //   // 第一次查詢：獲取 YM 批號
-    //   const ymResult = await poolAcme.query(sqlym);
-    // //   console.log(ymResult.recordset);
-    //   // 處理 YM 批號數據
-    //   ymlotCheck = ymResult.recordset.map(i => ({
-    //     OldLotNum: i.lotnum.trim(),
-    //     LayerName: i.LayerName.trim(),
-    //     Lot_type: i.Lot_type,
-    //   }));
-  
-    //   ymlotArray = [...new Set(ymResult.recordset.map(i => i.lotnum.trim()))];
-    //   ymlotStr = `'${ymlotArray.join("','")}'`;
-  
-      // 第二次查詢：比對 YM 和 H3 的批號
-      // const sqlissueDtl = `SELECT DISTINCT OldLotNum,LotNum
-      //   FROM PDL_IssueDtl 
-      //   WHERE OldLotNum IN (${ymlotStr})
-      //   AND ProcCode='PLS07' 
-      //   AND IsCancel='0'`;
-  
-    //   const issueDtlResult = await poolSNAcme.query(sqlissueDtl);
-    // //   console.log(issueDtlResult.recordset);
-    //   snlotArray = [...new Set(issueDtlResult.recordset.map(i => i.LotNum.trim()))];
-  
-    //   // 寫入所有 YM 對應的 SN 批
-    //   ymlotCheck.forEach((i) => {
-    //     const index = issueDtlResult.recordset.findIndex(
-    //       r => r.OldLotNum.trim() === i.OldLotNum.trim()
-    //     );
-    //     i.LotNum = index !== -1 ? issueDtlResult.recordset[index].LotNum.trim() : "";
-    //   });
-  
-    //   snlotStr = `'${snlotArray.join("','")}'`;
-  
-    //   // 第三次查詢：時間區間中 Readout
-    //   const snaoi = `
-    //     SELECT partnum,lotnum,CONVERT(varchar,ChangeTime, 120)ChangeTime FROM PDL_CKhistory 
-    //     WHERE proccode='AOI04' 
-    //     AND AftStatus='CheckOut'
-    //     AND lotnum IN (${snlotStr})
-    //     AND ChangeTime BETWEEN '${timestampToYMDHIS2(new Date(l8sqlTime))}' 
-    //     AND '${timestampToYMDHIS2(new Date(t8sqlTime))}'`;
-  
-    //   const snaoiResult = await poolSNAcme.query(snaoi);
-    //   const readoutData = snaoiResult.recordset;
-    //   const readoutLot = `'${[...new Set(readoutData.map(i => i.lotnum.trim()))].join("','")}'`;
-      
-      // 第四次查詢：到 SN_VRS_test_result_new 算良率等等
+    
       const snvrs = `SELECT 
         Left(V.PartNum,7)PartNo,
         V.LotType,
@@ -241,21 +180,24 @@ const sqlSnReadOut = `
       const sqlTrigger = `SELECT * FROM sn_aoi_trigger`;
       const sqlSf = `SELECT DISTINCT LEFT(PartNum,7) PN ,ULMark94V,NumOfLayer,ProdClass FROM
         prodbasic WHERE LEFT(PartNum,4)<>'UMGL' AND ULMark94V <>''`;
-        const aoiconn = await mysqlConnection(getDbConfig('aoi'));
+      const sqlLayout = `SELECT DISTINCT left(JobName,7) JobName ,MpLtX,MpLtY from SN_Layout_Center_Head(nolock)`;
+      aoiconn = await mysqlConnection(getDbConfig('aoi'));
       // 並行執行多個查詢
-      const [snvrsResult,triggerResult] = await Promise.all([
+      const [snvrsResult,triggerResult,sfResult,layoutResult] = await Promise.all([
         poolSNDc.query(snvrs),
         // poolAcme.query(sqlSf),
         queryFunc(aoiconn,sqlTrigger),
         // poolDc.query(sqlTrigger),
-        // poolAcme.query(sqlSf)
+        poolSNAcme.query(sqlSf),
+        poolSNDc.query(sqlLayout)
       ]);
       // res.json(triggerResult);
       
       const rawData = snvrsResult.recordset;
       const triggerData = triggerResult;
       // res.json(rawData);
-      // const sfData = sfResult.recordset;
+      const sfData = sfResult.recordset;
+      const layoutData = layoutResult.recordset;
       const summaryData = [];
   
       // 處理數據
@@ -263,31 +205,44 @@ const sqlSnReadOut = `
         const layerAry = r.LayerName.split("L");
         const layerCheck = (Number(layerAry[2]) - Number(layerAry[1]) + 1) / 2;
   
-        // const sfIdx = sfData.findIndex(s => r.PartNo === s.PN);
+        const sfIdx = sfData.findIndex(s => r.PartNo === s.PN);
         const triIdx = triggerData.findIndex(t => r.PartNo === t.shortpart);
-        console.log(triIdx);
-        // if (sfIdx !== -1) {
-        //   const { ULMark94V, NumOfLayer, ProdClass } = sfData[sfIdx];
-        //   r.ULMark94V = ULMark94V;
-        //   r.NumOfLayer = NumOfLayer;
-        //   r.ProdClass = ProdClass;
-        // } else {
-        //   r.ULMark94V = "";
-        //   r.NumOfLayer = "";
-        //   r.ProdClass = "";
-        // }
+        const layoutIdx = layoutData.findIndex(l => r.PartNo === l.JobName);
+
+        if(layoutIdx !== -1){
+          const { MpLtX, MpLtY } = layoutData[layoutIdx];
+          r.MpLtX = MpLtX;
+          r.MpLtY = MpLtY;
+        }else{
+          r.MpLtX = "";
+          r.MpLtY = "";
+        }
+
+
+        if (sfIdx !== -1) {
+          const { ULMark94V, NumOfLayer, ProdClass } = sfData[sfIdx];
+          r.ULMark94V = ULMark94V;
+          r.NumOfLayer = NumOfLayer;
+          r.ProdClass = ProdClass;
+        } else {
+          r.ULMark94V = "";
+          r.NumOfLayer = "";
+          r.ProdClass = "";
+        }
   
         if (triIdx !== -1) {
-          const { Core, Bu } = triggerData[triIdx];
+          const { core, bu } = triggerData[triIdx];
           if (r.LayerName === "-Outer" && r.LayerType !== "CORE") {
-            r.triger = Bu;
+            r.triger = bu;
           } else {
-            r.triger = r.LayerType === "CORE" ? Core : (layerCheck === 1 ? Core : Bu);
+            r.triger = r.LayerType === "CORE" ? core : (layerCheck === 1 ? core : bu);
           }
         } else {
           r.triger = "";
         }
+        
       });
+     
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
@@ -305,6 +260,11 @@ const sqlSnReadOut = `
           r.LayerName === LayerName && 
           r.Qnty_S === Number(qty)
         );
+  
+        // 從 filterData 中獲取第一筆資料的 MpLtX 和 MpLtY
+        const firstRecord = filterData[0] || {};
+        const mpLtX = firstRecord.MpLtX || "";
+        const mpLtY = firstRecord.MpLtY || "";
   
         const aosbefUnique = new Map();
         const aosaftUnique = new Map();
@@ -381,7 +341,7 @@ const sqlSnReadOut = `
   
         // 設置物件屬性
         Object.assign(Obj, {
-          Bef_Yield: (1 - uniqueAosBefCount / Number(qty)).toFixed(4),
+          bef_Yield: (1 - uniqueAosBefCount / Number(qty)).toFixed(4),
           Yield: (1 - uniqueAosAftCount / Number(qty)).toFixed(4),
           Remark: `${LotNum}_${LayerType === "CORE" ? checkCoreLayer : LayerName}`,
           PartNo,
@@ -395,40 +355,53 @@ const sqlSnReadOut = `
           ProdClass,
           Factory: "SN",
           triger,
+          MpLtX: mpLtX,
+          MpLtY: mpLtY,
           value: ""
         });
-  
+        
         summaryData.push(Obj);
       });
-  
+      const camelCaseData = convertToCamelCase(summaryData);
       // 返回結果
       res.json({
         daily: {
-          data: summaryData,
-          db: "paoi",
-          table: "ptaoi_yield_defect",
+          data: camelCaseData,
+          db: "aoi",
+          table: "aoi_yield_defect",
           match: [
-            "Yield",
-            "Bef_Yield",
-            "C_TOP_1",
-            "C_TOP1",
-            "C_TOP_2",
-            "C_TOP2",
-            "C_TOP_3",
-            "C_TOP3",
-            "S_TOP_1",
-            "S_TOP1",
-            "S_TOP_2",
-            "S_TOP2",
-            "S_TOP_3",
-            "S_TOP3",
-          ],
+            'c_top_1',
+            'c_top1',
+            'c_top_2', 
+            'c_top2',
+            'c_top_3',
+            'c_top3',
+            's_top_1',
+            's_top1',
+            's_top_2',
+            's_top2',
+            's_top_3', 
+            's_top3',
+            'bef_yield',
+            'yield',
+            'remark',
+            'time',
+            'prod_class',
+            'triger',
+            'value',
+            'mp_lt_x',
+            'mp_lt_y',
+          ]
         },
       });
   
     } catch (err) {
       console.log(err);
       res.status(500).json({ error: err.message });
+    }finally{
+      if (aoiconn) {
+        await aoiconn.destroy();
+      }
     }
   });
 
