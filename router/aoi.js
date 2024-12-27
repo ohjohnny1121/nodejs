@@ -7,7 +7,9 @@ const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
 const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
 const { initializePools, poolObj } = require('../mssql');
-const sql = require('mssql');
+const fs = require('fs');
+const Client = require('ssh2-sftp-client');
+
 
 const router = express.Router();
 let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
@@ -15,7 +17,8 @@ router.use(async (req, res, next) => {
     try {
         if (!poolAcme) {
             await initializePools();
-            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc ,poolH3Acme} = poolObj);
+            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc, poolH3Acme } = poolObj);
+            // console.log('Initialized pools:', poolObj);
         }
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Methods", "GET,POST");
@@ -67,7 +70,15 @@ router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
 router.get('/history/:lotnum', async (req, res) => {
     
     const { lotnum } = req.params;
-    console.log(lotnum);
+    // console.log(lotnum);
+    // console.log('poolSNAcme:', poolSNAcme);
+    if (!poolSNAcme) {
+        return res.status(500).json({
+            status: 'error',
+            message: '數據庫連接未初始化',
+            time: timestampToYMDHIS(new Date())
+        });
+    }
     try {
         const sqlStr = `SELECT 
                             RTRIM(a.lotnum) AS Lot,
@@ -105,10 +116,7 @@ router.get('/history/:lotnum', async (req, res) => {
             message: error.message || '查詢失敗',
             time: timestampToYMDHIS(new Date())
         });
-    } finally {
-        
-        res.end();
-    }
+    } 
 });
 
 

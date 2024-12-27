@@ -159,10 +159,12 @@ const initializePools = async () => {
   for (const [name, config] of Object.entries(dbConfigs)) {
     try {
       poolObj[`pool${name}`] = await createPool(config, name);
+      console.log(`Initialized pool for ${name}`);
     } catch (err) {
       console.error(`Failed to initialize ${name} pool`, err);
     }
   }
+  console.log('All pools initialized:', Object.keys(poolObj));
   return poolObj;
 };
 
