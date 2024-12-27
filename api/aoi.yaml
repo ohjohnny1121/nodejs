@@ -2,11 +2,11 @@ openapi: 3.0.0
 info:
   title: AOI API
   version: 1.0.0
-  description: API for retrieving AOI daily data
+  description: API for retrieving AOI daily data and images
 servers:
-  - url: http://WYM2DNA4378:3000
-    description: 本地服務器
   - url: http://10.22.94.69:3000
+    description: 本地服務器
+  - url: http://WYM2DNA4378:3000
     description: 內部網絡服務器
 paths:
   /aoi/aoidaily/{startDate}/{endDate}/{factory}:
@@ -79,4 +79,78 @@ paths:
                     type: string
                   time:
                     type: string
-                    format: date-time 
+                    format: date-time
+  /aoi/image:
+    get:
+      summary: Retrieve image in base64 format
+      parameters:
+        - in: query
+          name: ImagePath
+          required: true
+          schema:
+            type: string
+          description: Path to the image
+        - in: query
+          name: DefectSeq
+          required: true
+          schema:
+            type: string
+          description: Defect sequence number
+        - in: query
+          name: BoardNo
+          required: true
+          schema:
+            type: string
+          description: Board number
+        - in: query
+          name: Side
+          required: true
+          schema:
+            type: string
+          description: Side of the board
+        - in: query
+          name: xValue
+          required: true
+          schema:
+            type: number
+          description: X coordinate value
+        - in: query
+          name: yValue
+          required: true
+          schema:
+            type: number
+          description: Y coordinate value
+        - in: query
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+      responses:
+        '200':
+          description: Image retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string
+                    description: Base64 encoded image
+        '500':
+          description: Error retrieving image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string 
