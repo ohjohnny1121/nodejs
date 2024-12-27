@@ -106,6 +106,7 @@ router.get('/history/:lotnum', async (req, res) => {
             time: timestampToYMDHIS(new Date())
         });
     } finally {
+        
         res.end();
     }
 });
