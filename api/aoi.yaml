@@ -5,9 +5,9 @@ info:
   description: API for retrieving AOI daily data and images
 servers:
   - url: http://10.22.94.69:3000
-    description: 本地服務器
-  - url: http://WYM2DNA4378:3000
     description: 內部網絡服務器
+  - url: http://WYM2DNA4378:3000
+    description: 本地服務器
 paths:
   /aoi/aoidaily/{startDate}/{endDate}/{factory}:
     get:
@@ -187,6 +187,69 @@ paths:
                     format: date-time
         '500':
           description: Error updating remark
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/history/{lot}:
+    get:
+      summary: Retrieve history data for a specific lot
+      parameters:
+        - in: path
+          name: lot
+          required: true
+          schema:
+            type: string
+          description: Lot number to retrieve history for
+      responses:
+        '200':
+          description: History data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Lot:
+                          type: string
+                          description: The lot number
+                        Layer:
+                          type: string
+                          description: The layer name
+                        Process:
+                          type: string
+                          description: The process name
+                        Machine:
+                          type: string
+                          description: The machine name
+                        ProcessTime:
+                          type: string
+                          format: date-time
+                          description: The time of the process
+                        DetailProcess:
+                          type: string
+                          description: Detailed process information
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving history data
           content:
             application/json:
               schema:
