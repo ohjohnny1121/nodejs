@@ -67,49 +67,7 @@ const initDatabase = async () => {
         // app.use('/api-docs-aoi', aoiRouter);
         // app.use('/api-docs-user', userRouter);
 
-        // 單一的路由器
-        const apiDocsRouter = express.Router();
-
-        // 根據路徑參數提供不同的 Swagger 文檔
-        apiDocsRouter.use('/:type', swaggerUi.serve, (req, res, next) => {
-            const docType = req.params.type;
-            let swaggerDocument;
-
-            if (docType === 'aoi') {
-                swaggerDocument = swaggerAoi;
-            } else if (docType === 'user') {
-                swaggerDocument = swaggerUser;
-            } else {
-                return res.status(400).send('Invalid document type');
-            }
-
-            swaggerUi.setup(swaggerDocument, {
-                explorer: true,
-                customSiteTitle: `${docType.toUpperCase()} API Documentation`
-            })(req, res, next);
-        });
-
-        // 將路由器掛載到同一個路徑
-        app.use('/api-docs', apiDocsRouter);
-
-        // 創建一個頁面來列出所有文檔鏈接
-        app.get('/api-docs', (req, res) => {
-            res.send(`
-                <html>
-                    <head>
-                        <title>API Documentation Links</title>
-                    </head>
-                    <body>
-                        <h1>API Documentation Links</h1>
-                        <ul>
-                            <li><a href="/api-docs/aoi">AOI API Documentation</a></li>
-                            <li><a href="/api-docs/user">User API Documentation</a></li>
-                        </ul>
-                    </body>
-                </html>
-            `);
-        });
-
+        
         // 提供靜態文件
         app.use(express.static(path.join(__dirname, 'swagger-ui')));
 
