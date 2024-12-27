@@ -44,13 +44,13 @@ router.get("/sndailyadd", async (req, res) => {
     try {
       
       const endTime = new Date();
-      endTime.setDate(endTime.getDate() );
+      endTime.setDate(endTime.getDate()+1 );
       endTime.setHours(8, 0, 0, 0);
       const t8sqlTime = 
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 30);
+      startTime.setDate(startTime.getDate() - 31);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -199,7 +199,7 @@ const sqlSnReadOut = `
       const sfData = sfResult.recordset;
       const layoutData = layoutResult.recordset;
       const summaryData = [];
-  
+      // res.json(rawData);
       // 處理數據
       rawData.forEach((r) => {
         const layerAry = r.LayerName.split("L");
@@ -348,9 +348,7 @@ const sqlSnReadOut = `
           LotType,
           LotNum,
           OldLotNum,
-          LotType: Lot_type,
           Layer: LayerName,
-          // AOILayer: LayerName,
           Time: timestampToYMDHIS(ChangeTime),
           ProdClass,
           Factory: "SN",
@@ -389,6 +387,7 @@ const sqlSnReadOut = `
             'triger',
             'mp_lt_x',
             'mp_lt_y',
+            'lot_type',
           ]
         },
       });

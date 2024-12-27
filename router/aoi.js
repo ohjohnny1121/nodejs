@@ -41,9 +41,10 @@ router.use(bodyParser.json());
 router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
     const { lotnum, remark } = req.params;
     console.log(lotnum, remark);
+    let connection;
     try {
-        const connection = await mysqlConnection(getDbConfig('aoi'));
-        const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lotnum = '${lotnum}'`;
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lot_num = '${lotnum}'`;
         const result = await queryFunc(connection, sqlStr);
         res.status(200).json({
             status: 'success',
@@ -95,6 +96,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         prod_class,
                         part_no,
                         lot_num,
+                        lot_type,
                         triger,
                         bef_yield,
                         yield,
