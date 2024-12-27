@@ -95,6 +95,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             const sqlStr = `SELECT 
                             factory,
                             prod_class,
+                            part_num,
                             lot_num,
                             triger,
                             bef_yield,
