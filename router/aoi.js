@@ -95,7 +95,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             const sqlStr = `SELECT 
                             factory,
                             prod_class,
-                            part_num,
+                            part_no,
                             lot_num,
                             triger,
                             bef_yield,
@@ -171,5 +171,94 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         }
     }
 });
+
+router.get('/image', async (req, res) => {
+    try {
+        const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue, factory } = req.query;
+        
+        let imageBase64 = "";
+        let status = "success";
+        let message = "Image retrieved successfully";
+
+        if (factory === "YM" || !ImagePath.includes("10.23.204.68")) {
+            const imageBuffer = fs.readFileSync(`${ImagePath}/${DefectSeq}.jpg`);
+            imageBase64 = imageBuffer.toString("base64");
+        } else if (factory === "SN" || ImagePath.includes("10.23.204.68")) {
+            const filePath = ImagePath.replace(/^\\\\[\d\.]+/, "");
+            const sftp = new Client();
+            await sftp.connect({
+                host: "10.23.60.3",
+                port: 22,
+                username: "Lthmanager_user",
+                password: "1qazXSW@user",
+            });
+
+            let finalPath = "";
+            const xOffSet = -7;
+            let xValueNum = Number(xValue);
+            let yValueNum = Number(yValue);
+
+            if (filePath.includes("ai_service")) {
+                const exists = await sftp.exists(filePath);
+                if (!exists) {
+                    if (filePath.includes("ud1")) {
+                        const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                        const isOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                        if (isNonOffsetExists) {
+                            finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                        }
+                        if (isOffsetExists) {
+                            finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                        }
+                    }
+                    if (filePath.includes("ud2")) {
+                        const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                        const isOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                        if (isNonOffsetExists) {
+                            finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                        }
+                        if (isOffsetExists) {
+                            finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                        }
+                    }
+                } else {
+                    const isOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                    const isNonOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                    if (isOffsetExists) {
+                        finalPath = `${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                    }
+                    if (isNonOffsetExists) {
+                        finalPath = `${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                    }
+                }
+            } else {
+                finalPath = `${filePath}/${DefectSeq}.jpg`;
+            }
+
+            const buffer = await sftp.get(finalPath);
+            if (buffer) {
+                imageBase64 = buffer.toString("base64");
+            } else {
+                status = "error";
+                message = "Image not found";
+            }
+            sftp.end();
+        }
+
+        res.json({
+            status: status,
+            message: message,
+            image: imageBase64
+        });
+    } catch (error) {
+        console.error('Error retrieving image:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Failed to retrieve image',
+            image: ""
+        });
+    }
+});
+
 
 module.exports = router;
