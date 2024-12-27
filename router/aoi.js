@@ -6,30 +6,25 @@ const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
 const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
+const { initializePools, poolObj } = require('../mssql');
 
 const router = express.Router();
-
-// CORS 設置
-router.use((req, res, next) => {
-    // 允許特定來源或使用 * 允許所有來源
-    res.header('Access-Control-Allow-Origin', '*');
-    
-    // 允許的 HTTP 方法
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    
-    // 允許的請求頭
-    res.header('Access-Control-Allow-Headers', 
-        'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    // 允許發送認證信息
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // 處理 OPTIONS 請求
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
+let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
+router.use(async (req, res, next) => {
+    try {
+        if (!poolAcme) {
+            await initializePools();
+            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc ,poolH3Acme} = poolObj);
+        }
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "GET,POST");
+        res.setHeader("Access-Control-Allow-Header", "Content-Type,Authorization");
+        res.setHeader("Access-Control-Allow-Credentials", true);
+        next();
+    } catch (error) {
+        console.error("連接池初始化失敗:", error);
+        res.status(500).json({ error: "數據庫連接失敗" });
     }
-    
-    next();
 });
 
 const key = 'YMYIP';
@@ -39,6 +34,7 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 router.use(bodyParser.json());
 
 router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
+    
     const { lotnum, remark } = req.params;
     console.log(lotnum, remark);
     let connection;
@@ -62,6 +58,50 @@ router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
         if (connection) {
             await connection.release();
         }
+    }
+});
+
+
+router.get('/history/:lot/', async (req, res) => {
+    const { lot} = req.params;
+    let sqlStr = '';
+    sqlStr = `SELECT 
+                RTRIM(a.lotnum) AS Lot,
+                RTRIM(c.LayerName) AS Layer,
+                --a.AftStatus AS AftStatus,
+                --a.BefStatus AS BefStatus,
+                p.ProcName AS Process,
+                e.MachineName AS Machine,
+                CONVERT(VARCHAR, a.ChangeTime, 120) AS ProcessTime,
+                LEFT(p.ProcName, 3) + CAST(a.BefDegree AS CHAR(1)) + 
+                RIGHT(p.ProcName, 3) + CAST(a.AftTimes AS CHAR(1)) AS DetailProcess
+            FROM 
+                pdl_ckhistory a WITH (NOLOCK)
+                INNER JOIN numoflayer c WITH (NOLOCK) ON a.layer = c.Layer
+                INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
+                INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
+            WHERE 
+                RTRIM(a.lotnum) = '${lot}'
+                AND a.AftStatus = 'CheckOut'
+                AND a.BefStatus = 'CheckIn'
+            ORDER BY 
+                a.ChangeTime ASC`;
+
+    try {
+        const result = await poolSNAcme.query(sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result.recordset,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (err) {
+        console.error('操作失敗:', err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || '查詢失敗',
+            time: timestampToYMDHIS(new Date())
+        });
     }
 });
 
