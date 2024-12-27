@@ -34,10 +34,11 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 
+// 更新SN AOI 備註
 router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
     
     const { lotnum, remark } = req.params;
-    console.log(lotnum, remark);
+    // console.log(lotnum, remark);
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
@@ -62,51 +63,57 @@ router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
     }
 });
 
-
-router.get('/history/:lot/', async (req, res) => {
-    const { lot } = req.params;
-    const sqlStr = `SELECT 
-                    RTRIM(a.lotnum) AS Lot,
-                    RTRIM(c.LayerName) AS Layer,
-                    p.ProcName AS Process,
-                    e.MachineName AS Machine,
-                    CONVERT(VARCHAR, a.ChangeTime, 120) AS ProcessTime,
-                    LEFT(p.ProcName, 3) + CAST(a.BefDegree AS CHAR(1)) + 
-                    RIGHT(p.ProcName, 3) + CAST(a.AftTimes AS CHAR(1)) AS DetailProcess
-                FROM 
-                    pdl_ckhistory a WITH (NOLOCK)
-                    INNER JOIN numoflayer c WITH (NOLOCK) ON a.layer = c.Layer
-                    INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
-                    INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
-                WHERE 
-                    RTRIM(a.lotnum) = @lot
-                    AND a.AftStatus = 'CheckOut'
-                    AND a.BefStatus = 'CheckIn'
-                ORDER BY 
-                    a.ChangeTime ASC`;
-
+// 獲取SN AOI 歷史資料
+router.get('/history/:lotnum', async (req, res) => {
+    
+    const { lotnum } = req.params;
+    console.log(lotnum);
     try {
-        const request = poolSNAcme.request();
-        request.input('lot', sql.VarChar, lot); // 使用參數化查詢
-        const result = await request.query(sqlStr);
+        const sqlStr = `SELECT 
+                            RTRIM(a.lotnum) AS Lot,
+                            RTRIM(c.LayerName) AS Layer,
+                            a.AftStatus AS Status,
+                            a.AftStatus,
+                            a.BefStatus,
+                            p.ProcName AS Process,
+                            e.MachineName AS Machine,
+                            CONVERT(VARCHAR, a.ChangeTime, 120) AS ProcessTime,
+                            LEFT(p.ProcName, 3) + CAST(a.BefDegree AS CHAR(1)) + 
+                            RIGHT(p.ProcName, 3) + CAST(a.AftTimes AS CHAR(1)) AS DetailProcess
+                        FROM 
+                            pdl_ckhistory a WITH (NOLOCK)
+                            INNER JOIN numoflayer c WITH (NOLOCK) ON a.layer = c.Layer
+                            INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
+                            INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
+                        WHERE 
+                            RTRIM(a.lotnum) = '${lotnum}'
+                            and a.BefStatus ='CheckIn'
+                            and a.AftStatus ='CheckOut'
+                        ORDER BY 
+                            a.ChangeTime ASC`;
+        const result = await poolSNAcme.query(sqlStr);
         res.status(200).json({
             status: 'success',
             message: '成功',
-            data: result.recordset,
+            data: result,
             time: timestampToYMDHIS(new Date())
         });
-    } catch (err) {
-        console.error('操作失敗:', err);
+    } catch (error) {
+        console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
-            message: err.message || '查詢失敗',
+            message: error.message || '查詢失敗',
             time: timestampToYMDHIS(new Date())
         });
+    } finally {
+        
+        res.end();
     }
 });
 
 
 
+// 獲取AOI 每日資料
 router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
     let connection;
     try {
@@ -187,6 +194,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
     }
 });
 
+// 獲取AOI 圖片
 router.get('/image', async (req, res) => {
     try {
         const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue, factory } = req.query;
