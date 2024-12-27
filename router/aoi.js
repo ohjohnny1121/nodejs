@@ -7,6 +7,7 @@ const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
 const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
 const { initializePools, poolObj } = require('../mssql');
+const sql = require('mssql');
 
 const router = express.Router();
 let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
@@ -63,32 +64,31 @@ router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
 
 
 router.get('/history/:lot/', async (req, res) => {
-    const { lot} = req.params;
-    let sqlStr = '';
-    sqlStr = `SELECT 
-                RTRIM(a.lotnum) AS Lot,
-                RTRIM(c.LayerName) AS Layer,
-                --a.AftStatus AS AftStatus,
-                --a.BefStatus AS BefStatus,
-                p.ProcName AS Process,
-                e.MachineName AS Machine,
-                CONVERT(VARCHAR, a.ChangeTime, 120) AS ProcessTime,
-                LEFT(p.ProcName, 3) + CAST(a.BefDegree AS CHAR(1)) + 
-                RIGHT(p.ProcName, 3) + CAST(a.AftTimes AS CHAR(1)) AS DetailProcess
-            FROM 
-                pdl_ckhistory a WITH (NOLOCK)
-                INNER JOIN numoflayer c WITH (NOLOCK) ON a.layer = c.Layer
-                INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
-                INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
-            WHERE 
-                RTRIM(a.lotnum) = '${lot}'
-                AND a.AftStatus = 'CheckOut'
-                AND a.BefStatus = 'CheckIn'
-            ORDER BY 
-                a.ChangeTime ASC`;
+    const { lot } = req.params;
+    const sqlStr = `SELECT 
+                    RTRIM(a.lotnum) AS Lot,
+                    RTRIM(c.LayerName) AS Layer,
+                    p.ProcName AS Process,
+                    e.MachineName AS Machine,
+                    CONVERT(VARCHAR, a.ChangeTime, 120) AS ProcessTime,
+                    LEFT(p.ProcName, 3) + CAST(a.BefDegree AS CHAR(1)) + 
+                    RIGHT(p.ProcName, 3) + CAST(a.AftTimes AS CHAR(1)) AS DetailProcess
+                FROM 
+                    pdl_ckhistory a WITH (NOLOCK)
+                    INNER JOIN numoflayer c WITH (NOLOCK) ON a.layer = c.Layer
+                    INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
+                    INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
+                WHERE 
+                    RTRIM(a.lotnum) = @lot
+                    AND a.AftStatus = 'CheckOut'
+                    AND a.BefStatus = 'CheckIn'
+                ORDER BY 
+                    a.ChangeTime ASC`;
 
     try {
-        const result = await poolSNAcme.query(sqlStr);
+        const request = poolSNAcme.request();
+        request.input('lot', sql.VarChar, lot); // 使用參數化查詢
+        const result = await request.query(sqlStr);
         res.status(200).json({
             status: 'success',
             message: '成功',
