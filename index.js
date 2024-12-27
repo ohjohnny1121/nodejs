@@ -92,9 +92,101 @@ const initDatabase = async () => {
         // 將路由器掛載到同一個路徑
         app.use('/api-docs', apiDocsRouter);
 
-        // 簡單的 API 路由
+        // 創建一個頁面來列出所有文檔鏈接
+        app.get('/api-docs', (req, res) => {
+            res.send(`
+                <html>
+                    <head>
+                        <title>API Documentation Links</title>
+                    </head>
+                    <body>
+                        <h1>API Documentation Links</h1>
+                        <ul>
+                            <li><a href="/api-docs/aoi">AOI API Documentation</a></li>
+                            <li><a href="/api-docs/user">User API Documentation</a></li>
+                        </ul>
+                    </body>
+                </html>
+            `);
+        });
+
+        // 提供靜態文件
+        app.use(express.static(path.join(__dirname, 'swagger-ui')));
+
+        // 自定義導航頁面
+        app.get('/custom-docs/:type', (req, res) => {
+            const docType = req.params.type;
+            let swaggerDocument;
+
+            if (docType === 'aoi') {
+                swaggerDocument = swaggerAoi;
+            } else if (docType === 'user') {
+                swaggerDocument = swaggerUser;
+            } else {
+                return res.status(400).send('Invalid document type');
+            }
+
+            res.send(`
+                <html>
+                    <head>
+                        <title>${docType.toUpperCase()} API Documentation</title>
+                        <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+                        <style>
+                            #custom-nav {
+                                margin: 20px;
+                                font-size: 18px;
+                            }
+                            #custom-nav a {
+                                margin-right: 15px;
+                                text-decoration: none;
+                                color: #007bff;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div id="custom-nav">
+                            <a href="/">首頁</a>
+                            <a href="/custom-docs/aoi">AOI</a>
+                            <a href="/custom-docs/user">User</a>
+                        </div>
+                        <div id="swagger-ui"></div>
+                        <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+                        <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+                        <script>
+                            window.onload = function() {
+                                const ui = SwaggerUIBundle({
+                                    spec: ${JSON.stringify(swaggerDocument)},
+                                    dom_id: '#swagger-ui',
+                                    presets: [
+                                        SwaggerUIBundle.presets.apis,
+                                        SwaggerUIStandalonePreset
+                                    ],
+                                    layout: "StandaloneLayout"
+                                });
+                                window.ui = ui;
+                            };
+                        </script>
+                    </body>
+                </html>
+            `);
+        });
+
+        // 簡單的首頁
         app.get('/', (req, res) => {
-            res.send('chi666667');
+            res.send(`
+                <html>
+                    <head>
+                        <title>API Documentation Home</title>
+                    </head>
+                    <body>
+                        <h1>API Documentation Home</h1>
+                        <ul>
+                            <li><a href="/custom-docs/aoi">AOI</a></li>
+                            <li><a href="/custom-docs/user">User</a></li>
+                        </ul>
+                    </body>
+                </html>
+            `);
         });
 
         // 在資料庫初始化成功後才啟動 Express 服務器

@@ -118,7 +118,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                             WHERE time >= '${convertTimestampToFormattedDate(startTimestamp)}' 
                             AND time <= '${convertTimestampToFormattedDate(endTimestamp)}' 
                             AND factory = '${factory}'`;
-            console.log(sqlStr);
+            // console.log(sqlStr);
             const result = await queryFunc(connection, sqlStr);
             
             
