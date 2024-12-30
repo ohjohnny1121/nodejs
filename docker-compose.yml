@@ -1,5 +1,6 @@
 version: '3'
 services:
+  
   mysql:
     image: mysql:8.0
     command: 
@@ -26,6 +27,22 @@ services:
     build: .
     ports:
       - "3000:3000"
+    environment:
+      # MySQL 配置
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pwd123
+    extra_hosts:
+      # SQL Server 映射
+      - "UTCYMEDCLSNR01:10.22.66.37"
+      - "UTCSNACMLSNR:10.23.65.44"
+      - "10.22.65.105:10.22.65.105"
+      - "10.22.65.120:10.22.65.120"
+      - "10.22.65.134:10.22.65.134"
+      - "10.22.66.37:10.22.66.37"
+      - "UTCYMACMT02:10.22.65.135"
+      - "Utcsycimdw01:10.30.40.86"
+
     depends_on:
       - mysql
     networks:

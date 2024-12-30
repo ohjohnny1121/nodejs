@@ -13,6 +13,7 @@ const { dailyAdd, stackAdd } = require('./daily/dailyFunc.js');
 const hostname = os.hostname();
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();
@@ -25,6 +26,7 @@ const swaggerAoi = YAML.load(path.join(__dirname, 'api', 'aoi.yaml'));
 const swaggerUser = YAML.load(path.join(__dirname, 'api', 'user.yaml'));
 
 // 設定每天早上 8:00 執行
+cron.schedule('10 05 14 * * *', async () => {
 cron.schedule('10 25 09 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
