@@ -158,6 +158,31 @@ router.get('/layout/:part/:lot/:layer', async (req, res) => {
       });
   }
 });
+// router.get('/transfer',async(req,res)=>{
+//   let aoiconn = null;
+//   try{
+//     aoiconn = await mysqlConnection(getDbConfig('aoi'));
+//     const sql = `SELECT  shortpart part_no,core triger,bu target FROM sn_aoi_trigger`;
+//     const result = await queryFunc(aoiconn,sql);
+//     res.json({
+//       daily: {
+//         data: result,
+//         db: "aoi",
+//         table: "aoi_spec",
+//         match:['part_no','triger','target']
+//       },
+//     });
+//   }catch(err){
+//     res.status(500).json({ error: err.message });
+//   }
+//   finally{
+//     if(aoiconn){
+//       await aoiconn.close();
+//     }
+//   }
+// });
+
+
 
 router.get("/sndailyadd", async (req, res) => {
   let aoiconn = null;
@@ -225,8 +250,7 @@ const sqlSnReadOut = `
 
 
     const issueDtlResult = await poolSNAcme.query(sqlissueDtl);
-    const compareLotNum = issueDtlResult.recordset.map(i => i.LotNum.trim());
-
+    // const compareLotNum = issueDtlResult.recordset.map(i => i.LotNum.trim());
     snReadOutResult.recordset.forEach(i => {
       if(i.lotnum.trim().slice(4,5)==='6'){
         i.Factory = "S2";
@@ -471,7 +495,7 @@ const sqlSnReadOut = `
           Layer: LayerName,
           Time: timestampToYMDHIS(ChangeTime),
           ProdClass,
-          Factory: "SN",
+          Factory: snReadOutResult.recordset.find(i => i.lotnum.trim() === LotNum).Factory,
           triger,
           MpLtX: mpLtX,
           MpLtY: mpLtY,
@@ -508,6 +532,7 @@ const sqlSnReadOut = `
             'mp_lt_x',
             'mp_lt_y',
             'lot_type',
+            'factory'
           ]
         },
       });
