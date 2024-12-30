@@ -38,6 +38,12 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 
+router.post('/setadmin',async(req,res)=>{
+    const {id}=req.body;
+    whiteListAdmin.push(id);
+    res.json({status:'success',message:'成功',data:whiteListAdmin});
+});
+
 // 登入路由
 router.post('/login', async (req, res) => {
     const url = 'http://10.13.66.33/WCF_MyumtAuth/Service1.svc?singleWsdl';

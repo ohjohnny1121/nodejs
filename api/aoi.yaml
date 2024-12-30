@@ -154,22 +154,37 @@ paths:
                     type: string
                   image:
                     type: string
-  /aoi/aoi-revise-remark/{lotnum}/{remark}:
+  /aoi/aoi-revise-remark:
     post:
       summary: Update AOI remark
-      parameters:
-        - in: path
-          name: lotnum
-          required: true
-          schema:
-            type: string
-          description: Lot number to update
-        - in: path
-          name: remark
-          required: true
-          schema:
-            type: string
-          description: New remark for the lot number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lotnum:
+                  type: string
+                  description: Lot number to update
+                remark:
+                  type: string
+                  description: New remark for the lot number
+      responses:
+        '200':
+          description: Remark updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
       responses:
         '200':
           description: Remark updated successfully

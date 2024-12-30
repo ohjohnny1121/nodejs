@@ -38,9 +38,9 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 router.use(bodyParser.json());
 
 // 更新SN AOI 備註
-router.post('/aoi-revise-remark/:lotnum/:remark', async (req, res) => {
+router.post('/aoi-revise-remark', async (req, res) => {
     
-    const { lotnum, remark } = req.params;
+    const { lotnum, remark } = req.body;
     // console.log(lotnum, remark);
     let connection;
     try {
