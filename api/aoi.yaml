@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://10.22.94.69:3000
     description: 內部網絡服務器
-  - url: http://WYM2DNA4378:3000
+  - url: http://WYM2AA1477:3000
     description: 本地服務器
 paths:
   /aoi/aoidaily/{startDate}/{endDate}/{factory}:
