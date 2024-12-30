@@ -33,10 +33,10 @@ services:
       - MYSQL_USER=user
       - MYSQL_PASSWORD=pwd123
       # 新增 MSSQL 配置
-      - MSSQL_HOST=10.23.65.44
-      - MSSQL_USER=your_username
-      - MSSQL_PASSWORD=your_password
-      - MSSQL_DATABASE=your_database
+      - MSSQL_HOST=UTCSNACMLSNR
+      - MSSQL_USER=dc_read
+      - MSSQL_PASSWORD=ewFJ9%(4
+      - MSSQL_DATABASE=acme
     depends_on:
       - mysql
     networks:
