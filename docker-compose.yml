@@ -1,5 +1,6 @@
 version: '3'
 services:
+  
   mysql:
     image: mysql:8.0
     command: 
@@ -26,6 +27,16 @@ services:
     build: .
     ports:
       - "3000:3000"
+    environment:
+      # 既有的 MySQL 配置保持不變
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pwd123
+      # 新增 MSSQL 配置
+      - MSSQL_HOST=UTCSNACMLSNR
+      - MSSQL_USER=dc_read
+      - MSSQL_PASSWORD=ewFJ9%(4
+      - MSSQL_DATABASE=acme
     depends_on:
       - mysql
     networks:
