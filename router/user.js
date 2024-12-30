@@ -33,7 +33,7 @@ router.use((req, res, next) => {
 });
 
 const key = 'YMYIP';
-// const whiteList = ['00776', '05866', '09068', 'A0274'];
+const whiteListAdmin = ['A4378','U00954'];
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
@@ -106,14 +106,17 @@ router.post('/login', async (req, res) => {
         const whitelist = await queryFunc(connection, sqlStr);
         const authority = whitelist.map(item => item.authority);
         authority.push(d1name);
-
-        const token = jwt.sign({ id, name, DeptName,email,authority }, key);
+        //這裡要加設定的權限
+        const admin = whiteListAdmin.includes(id);
+        console.log(id,admin);
+        const token = jwt.sign({ id, name, DeptName,email,authority,admin }, key);
         
 
         
         // console.log(sqlStrrevise);
         
         result.Myumt_AuthResult.authority = authority;
+        result.Myumt_AuthResult.admin = admin;
 
         res.json({
             status: 'success',
