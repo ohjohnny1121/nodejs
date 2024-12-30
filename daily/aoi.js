@@ -38,19 +38,139 @@ router.get("/trigger", async (req, res) => {
   res.json(triggerData);
 });
 
+router.get('/layout/:part/:lot/:layer', async (req, res) => {
+  try {
+      const { part, lot, layer } = req.params;
+
+      // 第一步：查詢 pdl_ckhistory 獲取 partnum
+      const partResult = await poolDc.query(`
+          SELECT DISTINCT TOP 1 a.partnum
+          FROM acme.dbo.pdl_ckhistory a(nolock), 
+               acme.dbo.numoflayer b, 
+               acme.dbo.prodbasic c 
+          WHERE a.layer = b.Layer
+          AND a.partnum = c.PartNum
+          AND a.revision = c.Revision 
+          AND a.lotnum = '${lot}'
+          AND b.LayerName = '${layer}'
+      `);
+      
+      if (!partResult.recordset[0]) {
+          throw new Error('找不到對應的 partnum');
+      }
+      
+      const { partnum } = partResult.recordset[0];
+
+      // 第二步：查詢 Filmpart
+      const filmResult = await poolDc.query(`
+          SELECT DISTINCT TOP 1 Filmpart 
+          FROM YM_FilmPart_Map(nolock)
+          WHERE Acmepart = '${partnum}'
+      `);
+      
+      if (!filmResult.recordset[0]) {
+          throw new Error('找不到對應的 Filmpart');
+      }
+
+      const { Filmpart } = filmResult.recordset[0];
+
+      // 第三步：同時查詢 Body 和 Head 資料
+      const sqlBody = `
+          SELECT DISTINCT 
+              CompXUpper,
+              CompXLower,
+              CompYUpper,
+              CompYLower 
+          FROM YM_Layout_Center_Body a(nolock) 
+          WHERE JobName = '${Filmpart}'
+      `;
+      
+      const sqlHead = `
+          SELECT MpLtX*MpLtY*4 UPP 
+          FROM YM_Layout_Center_Head(nolock) 
+          WHERE JobName = '${Filmpart}'
+      `;
+
+      const [bodyResult, headResult] = await Promise.all([
+          poolDc.query(sqlBody),
+          poolDc.query(sqlHead)
+      ]);
+
+      const data = bodyResult.recordset;
+      const headdata = headResult.recordset;
+
+      // 處理座標數據
+      const mixinX = [...new Set([
+          ...data.map(i => i.CompXUpper),
+          ...data.map(i => i.CompXLower)
+      ])].sort((a, b) => a - b);
+
+      const mixinY = [...new Set([
+          ...data.map(i => i.CompYUpper),
+          ...data.map(i => i.CompYLower)
+      ])].sort((a, b) => a - b);
+
+      // 建立數據陣列
+      const dataAry = [];
+
+      // 處理 X 軸數據
+      mixinX.forEach(x => {
+          // 下方陣列
+          const downAry = [
+              { x, y: mixinY[0] },                           // 起始點
+              { x, y: mixinY[mixinY.length / 2 - 1] }       // 結束點
+          ];
+
+          // 上方陣列
+          const topAry = [
+              { x, y: mixinY[mixinY.length / 2] },          // 起始點
+              { x, y: mixinY[mixinY.length - 1] }           // 結束點
+          ];
+
+          dataAry.push(downAry, topAry);
+      });
+
+      // 處理 Y 軸數據
+      mixinY.forEach(y => {
+          // 左側陣列
+          const leftAry = [
+              { x: mixinX[0], y },                          // 起始點
+              { x: mixinX[mixinX.length / 2 - 1], y }       // 結束點
+          ];
+
+          // 右側陣列
+          const rightAry = [
+              { x: mixinX[mixinX.length / 2], y },          // 起始點
+              { x: mixinX[mixinX.length - 1], y }           // 結束點
+          ];
+
+          dataAry.push(leftAry, rightAry);
+      });
+
+      // 返回結果
+      res.json({ dataAry, headdata });
+
+  } catch (err) {
+      console.error('路由處理發生錯誤：', err);
+      res.status(500).json({ 
+          error: '處理請求時發生錯誤',
+          message: err.message 
+      });
+  }
+});
 
 router.get("/sndailyadd", async (req, res) => {
   let aoiconn = null;
     try {
       
       const endTime = new Date();
-      endTime.setDate(endTime.getDate() );
+      endTime.setDate(endTime.getDate()+1 );
       endTime.setHours(8, 0, 0, 0);
       const t8sqlTime = 
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 30);
+      startTime.setDate(startTime.getDate() - 31);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -199,7 +319,7 @@ const sqlSnReadOut = `
       const sfData = sfResult.recordset;
       const layoutData = layoutResult.recordset;
       const summaryData = [];
-  
+      // res.json(rawData);
       // 處理數據
       rawData.forEach((r) => {
         const layerAry = r.LayerName.split("L");
@@ -348,9 +468,7 @@ const sqlSnReadOut = `
           LotType,
           LotNum,
           OldLotNum,
-          LotType: Lot_type,
           Layer: LayerName,
-          // AOILayer: LayerName,
           Time: timestampToYMDHIS(ChangeTime),
           ProdClass,
           Factory: "SN",
@@ -389,6 +507,7 @@ const sqlSnReadOut = `
             'triger',
             'mp_lt_x',
             'mp_lt_y',
+            'lot_type',
           ]
         },
       });

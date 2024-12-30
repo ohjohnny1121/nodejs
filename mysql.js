@@ -16,7 +16,9 @@ async function createPool(config) {
             ...config,
             waitForConnections: true,
             connectionLimit: 10,
-            queueLimit: 0
+            queueLimit: 0,
+            // 設置空閒超時
+            idleTimeout: 60000 // 60秒
         });
         pools.set(key, pool);
     }
@@ -61,8 +63,29 @@ async function queryFunc(connection, sql, values = []) {
     }
 }
 
+/**
+ * 定期執行心跳查詢以保持連接活躍
+ */
+function startHeartbeat() {
+    setInterval(async () => {
+        for (const pool of pools.values()) {
+            try {
+                const connection = await pool.getConnection();
+                await connection.query('SELECT 1');
+                connection.release();
+            } catch (error) {
+                console.error('心跳查詢失敗:', error);
+            }
+        }
+    }, 30000); // 每30秒執行一次
+}
+
 module.exports = {
     mysqlConnection,
     queryFunc,
-    pools
+    pools,
+    startHeartbeat
 };
+
+// 在應用啟動時調用 startHeartbeat
+// startHeartbeat();

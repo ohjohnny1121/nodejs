@@ -2,12 +2,12 @@ openapi: 3.0.0
 info:
   title: AOI API
   version: 1.0.0
-  description: API for retrieving AOI daily data
+  description: API for retrieving AOI daily data and images
 servers:
-  - url: http://WYM2DNA4378:3000
-    description: 本地服務器
   - url: http://10.22.94.69:3000
     description: 內部網絡服務器
+  - url: http://WYM2DNA4378:3000
+    description: 本地服務器
 paths:
   /aoi/aoidaily/{startDate}/{endDate}/{factory}:
     get:
@@ -68,6 +68,188 @@ paths:
                     format: date-time
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/image:
+    get:
+      summary: Retrieve image in base64 format
+      parameters:
+        - in: query
+          name: ImagePath
+          required: true
+          schema:
+            type: string
+          description: Path to the image
+        - in: query
+          name: DefectSeq
+          required: true
+          schema:
+            type: string
+          description: Defect sequence number
+        - in: query
+          name: BoardNo
+          required: true
+          schema:
+            type: string
+          description: Board number
+        - in: query
+          name: Side
+          required: true
+          schema:
+            type: string
+          description: Side of the board
+        - in: query
+          name: xValue
+          required: true
+          schema:
+            type: number
+          description: X coordinate value
+        - in: query
+          name: yValue
+          required: true
+          schema:
+            type: number
+          description: Y coordinate value
+        - in: query
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+      responses:
+        '200':
+          description: Image retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string
+                    description: Base64 encoded image
+        '500':
+          description: Error retrieving image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string
+  /aoi/aoi-revise-remark/{lotnum}/{remark}:
+    post:
+      summary: Update AOI remark
+      parameters:
+        - in: path
+          name: lotnum
+          required: true
+          schema:
+            type: string
+          description: Lot number to update
+        - in: path
+          name: remark
+          required: true
+          schema:
+            type: string
+          description: New remark for the lot number
+      responses:
+        '200':
+          description: Remark updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error updating remark
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/history/{lot}:
+    get:
+      summary: Retrieve history data for a specific lot
+      parameters:
+        - in: path
+          name: lot
+          required: true
+          schema:
+            type: string
+          description: Lot number to retrieve history for
+      responses:
+        '200':
+          description: History data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Lot:
+                          type: string
+                          description: The lot number
+                        Layer:
+                          type: string
+                          description: The layer name
+                        Process:
+                          type: string
+                          description: The process name
+                        Machine:
+                          type: string
+                          description: The machine name
+                        ProcessTime:
+                          type: string
+                          format: date-time
+                          description: The time of the process
+                        DetailProcess:
+                          type: string
+                          description: Detailed process information
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving history data
           content:
             application/json:
               schema:
