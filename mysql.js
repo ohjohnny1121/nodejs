@@ -88,4 +88,4 @@ module.exports = {
 };
 
 // 在應用啟動時調用 startHeartbeat
-startHeartbeat();
+// startHeartbeat();
