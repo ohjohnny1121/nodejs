@@ -276,4 +276,215 @@ paths:
                     type: string
                   time:
                     type: string
+                    format: date-time
+  /aoi/lot-list:
+    get:
+      summary: 取得用戶的 lot 列表
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: 用戶 ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+    post:
+      summary: 新增或更新用戶的 lot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  description: 工號
+                lot_list:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      factory:
+                        type: string
+                        description: 廠別
+                      part_no:
+                        type: string
+                        description: 料號
+                      lot_num:
+                        type: string
+                        description: 批號
+                      layer:
+                        type: string
+                  description: 層別
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+    delete:
+      summary: 刪除用戶的特定 lot、layer
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: 工號
+        - in: query
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: 廠別
+        - in: query
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+        - in: query
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: 批號
+        - in: query
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: 層別
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/lot-list-all:
+    delete:
+      summary: 刪除用戶的所有 lot
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: 用戶 ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
                     format: date-time 
