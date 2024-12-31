@@ -24,7 +24,7 @@ const API_BASE_URL = process.env.API_BASE_URL || `http://${hostname}:3000`;
 // 使用 path.join 確保正確的文件路徑
 const swaggerAoi = YAML.load(path.join(__dirname, 'api', 'aoi.yaml'));
 const swaggerUser = YAML.load(path.join(__dirname, 'api', 'user.yaml'));
-
+const swaggerTartri = YAML.load(path.join(__dirname, 'api', 'tartri.yaml'));
 // 設定每天早上 8:00 執行
 cron.schedule('30 00 08 * * *', async () => {
     try {
@@ -49,10 +49,11 @@ const initDatabase = async () => {
         app.use('/daily/aoi', require('./daily/aoi.js'));
         app.use('/user', require('./router/user.js'));
         app.use('/aoi', require('./router/aoi.js'));
+        app.use('/tartri', require('./router/tartri.js'));
         // 創建獨立的路由器
         const aoiRouter = express.Router();
         const userRouter = express.Router();
-
+        const tartriRouter = express.Router();
         // AOI Swagger 文檔
         aoiRouter.use('/', swaggerUi.serve, swaggerUi.setup(swaggerAoi, {
             explorer: true,
@@ -63,6 +64,12 @@ const initDatabase = async () => {
         userRouter.use('/', swaggerUi.serve, swaggerUi.setup(swaggerUser, {
             explorer: true,
             customSiteTitle: "User API Documentation"
+        }));
+
+        // Tartri Swagger 文檔
+        tartriRouter.use('/', swaggerUi.serve, swaggerUi.setup(swaggerTartri, {
+            explorer: true,
+            customSiteTitle: "Tartri API Documentation"
         }));
 
         // 將路由器掛載到不同的路徑
@@ -82,6 +89,8 @@ const initDatabase = async () => {
                 swaggerDocument = swaggerAoi;
             } else if (docType === 'user') {
                 swaggerDocument = swaggerUser;
+            } else if (docType === 'tartri') {
+                swaggerDocument = swaggerTartri;
             } else {
                 return res.status(400).send('Invalid document type');
             }
@@ -108,6 +117,7 @@ const initDatabase = async () => {
                             <a href="/">首頁</a>
                             <a href="/custom-docs/aoi">AOI</a>
                             <a href="/custom-docs/user">User</a>
+                            <a href="/custom-docs/tartri">Tartri</a>
                         </div>
                         <div id="swagger-ui"></div>
                         <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
@@ -143,6 +153,7 @@ const initDatabase = async () => {
                         <ul>
                             <li><a href="/custom-docs/aoi">AOI</a></li>
                             <li><a href="/custom-docs/user">User</a></li>
+                            <li><a href="/custom-docs/tartri">Tartri</a></li>
                         </ul>
                     </body>
                 </html>
