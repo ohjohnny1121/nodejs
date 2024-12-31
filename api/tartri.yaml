@@ -9,7 +9,7 @@ servers:
   - url: http://WYM2DNA4378:3000
     description: 本地服務器
 paths:
-  /aoi-spec:
+  /tartri/aoi-spec:
     get:
       summary: Retrieve AOI specifications
       responses:
