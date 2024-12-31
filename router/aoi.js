@@ -39,8 +39,8 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 router.get('/lot-list', async (req, res) => {
-    const { uid } = req.query;
-    console.log(uid);
+    const { uid } = req.body;
+    // console.log(uid);
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
