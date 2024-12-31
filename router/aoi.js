@@ -2,6 +2,8 @@ const express = require('express');
 // const soap = require('soap');
 // const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
+const app = express();  
+app.use(bodyParser.json());
 const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
@@ -36,7 +38,147 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
+router.get('/lot-list', async (req, res) => {
+    const { uid } = req.query;
+    console.log(uid);
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `SELECT * FROM user_lot_list WHERE uid = '${uid}'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
 
+router.post('/lot-list', async (req, res) => {
+    const { uid, lot_list} = req.body;
+    console.log(uid, lot_list);
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlDel = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
+        const sqlStr = `INSERT INTO user_lot_list (uid, factory,part_no, lot_num,layer) VALUES ${lot_list.map(item => `('${uid}', '${item.factory}', '${item.part_no}', '${item.lot_num}','${item.layer}')`).join(',')}`;
+        console.log(sqlStr);
+        const resultDel = await queryFunc(connection, sqlDel);
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
+
+router.delete('/lot-list', async (req, res) => {
+    const { uid, factory, part_no, lot_num, layer } = req.query;
+    console.log(uid, factory, part_no, lot_num, layer);
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}' AND factory = '${factory}' AND part_no = '${part_no}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
+router.put('/lot-list', async (req, res) => {
+    const { uid, factory, part_no, lot_num, layer } = req.body;
+    console.log(uid, factory, part_no, lot_num, layer);
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `UPDATE user_lot_list SET factory = '${factory}',part_no = '${part_no}', lot_num = '${lot_num}', layer = '${layer}' WHERE uid = '${uid}'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
+
+router.delete('/lot-list-all', async (req, res) => {
+    const { uid } = req.query;
+    console.log(uid);
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
+        const result = await queryFunc(connection, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: timestampToYMDHIS(new Date())
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: timestampToYMDHIS(new Date())
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+});
 // 更新SN AOI 備註
 router.post('/aoi-revise-remark', async (req, res) => {
     
@@ -151,6 +293,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         prod_class,
                         part_no,
                         lot_num,
+                        layer,
                         lot_type,
                         triger,
                         bef_yield,
