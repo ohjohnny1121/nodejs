@@ -68,7 +68,7 @@ router.get('/aoi-spec', async (req, res) => {
 
 router.post('/aoi-spec', async (req, res) => {
     const { part_no, target,triger } = req.body;
-    console.log(uid);
+    // console.log(uid);
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
