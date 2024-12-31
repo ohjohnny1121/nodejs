@@ -105,18 +105,20 @@ router.delete('/lot-list', async (req, res) => {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}' AND factory = '${factory}' AND part_no = '${part_no}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
         const result = await queryFunc(connection, sqlStr);
+        //時間要是台灣時間
+        
         res.status(200).json({
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } finally {
         if (connection) {
@@ -136,14 +138,14 @@ router.put('/lot-list', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } finally {
         if (connection) {
@@ -164,14 +166,14 @@ router.delete('/lot-list-all', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } finally {
         if (connection) {
@@ -192,14 +194,14 @@ router.post('/aoi-revise-remark', async (req, res) => {
         res.status(200).json({
             status: 'success',
             message: '成功',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } finally {
         if (connection) {
@@ -218,7 +220,7 @@ router.get('/history/:lotnum', async (req, res) => {
         return res.status(500).json({
             status: 'error',
             message: '數據庫連接未初始化',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     }
     try {
@@ -249,14 +251,14 @@ router.get('/history/:lotnum', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '查詢失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } 
 });
@@ -276,7 +278,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             return res.status(400).json({
                 status: 'error',
                 message: '缺少必要參數',
-                time: timestampToYMDHIS(new Date())
+                time: timestampToYMDHIS(new Date('Asia/Taipei'))
             });
         }
 
@@ -324,7 +326,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
 
     } catch (error) {
@@ -332,7 +334,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } finally {
         if (connection) {
@@ -422,14 +424,16 @@ router.get('/image', async (req, res) => {
         res.json({
             status: status,
             message: message,
-            image: imageBase64
+            image: imageBase64,
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     } catch (error) {
         console.error('Error retrieving image:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || 'Failed to retrieve image',
-            image: ""
+            image: "",
+            time: timestampToYMDHIS(new Date('Asia/Taipei'))
         });
     }
 });
