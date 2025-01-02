@@ -47,6 +47,20 @@ paths:
                   time:
                     type: string
                     format: date-time
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
         '500':
           description: Error retrieving lot list
           content:
@@ -243,7 +257,7 @@ paths:
     post:
       tags:
         - AOI Data
-      summary: Update AOI remark
+      summary: Update remark for a specific lot
       requestBody:
         required: true
         content:
@@ -251,12 +265,12 @@ paths:
             schema:
               type: object
               properties:
-                lotnum:
+                lot_num:
                   type: string
-                  description: Lot number to update
+                  description: Lot number
                 remark:
                   type: string
-                  description: New remark for the lot number
+                  description: Remark to be updated
       responses:
         '200':
           description: Remark updated successfully
@@ -272,8 +286,22 @@ paths:
                   time:
                     type: string
                     format: date-time
-        '500':
-          description: Error updating remark
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -287,101 +315,21 @@ paths:
                     type: string
                     format: date-time
 
-  /aoi/history/{lotnum}:
+  /aoi/history/{lot_num}:
     get:
       tags:
         - AOI Data
       summary: Retrieve history data for a specific lot
       parameters:
         - in: path
-          name: lotnum
+          name: lot_num
           required: true
           schema:
             type: string
-          description: Lot number to retrieve history for
+          description: Lot number
       responses:
         '200':
           description: History data retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        Lot:
-                          type: string
-                          description: The lot number
-                        Layer:
-                          type: string
-                          description: The layer name
-                        Process:
-                          type: string
-                          description: The process name
-                        Machine:
-                          type: string
-                          description: The machine name
-                        ProcessTime:
-                          type: string
-                          format: date-time
-                          description: The time of the process
-                        DetailProcess:
-                          type: string
-                          description: Detailed process information
-                  time:
-                    type: string
-                    format: date-time
-        '500':
-          description: Error retrieving history data
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
-
-  /aoi/aoidaily/{startDate}/{endDate}/{factory}:
-    get:
-      tags:
-        - AOI Data
-      summary: Retrieve AOI daily data
-      parameters:
-        - in: path
-          name: startDate
-          required: true
-          schema:
-            type: integer
-            format: int64
-          description: Start date as a timestamp
-        - in: path
-          name: endDate
-          required: true
-          schema:
-            type: integer
-            format: int64
-          description: End date as a timestamp
-        - in: path
-          name: factory
-          required: true
-          schema:
-            type: string
-          description: Factory identifier
-      responses:
-        '200':
-          description: Success
           content:
             application/json:
               schema:
@@ -399,7 +347,7 @@ paths:
                     type: string
                     format: date-time
         '400':
-          description: Missing parameters
+          description: Bad request
           content:
             application/json:
               schema:
@@ -412,8 +360,80 @@ paths:
                   time:
                     type: string
                     format: date-time
-        '500':
-          description: Internal server error
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/aoidaily/{startDate}/{endDate}/{factory}:
+    get:
+      tags:
+        - AOI Data
+      summary: Retrieve daily AOI data
+      parameters:
+        - in: path
+          name: startDate
+          required: true
+          schema:
+            type: string
+          description: Start date in timestamp format
+        - in: path
+          name: endDate
+          required: true
+          schema:
+            type: string
+          description: End date in timestamp format
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+      responses:
+        '200':
+          description: Daily AOI data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
           content:
             application/json:
               schema:
@@ -431,7 +451,7 @@ paths:
     get:
       tags:
         - Image Retrieval
-      summary: Retrieve image in base64 format
+      summary: Retrieve AOI image
       parameters:
         - in: query
           name: ImagePath
@@ -490,6 +510,9 @@ paths:
                   image:
                     type: string
                     description: Base64 encoded image
+                  time:
+                    type: string
+                    format: date-time
         '500':
           description: Error retrieving image
           content:
