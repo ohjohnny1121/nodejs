@@ -443,17 +443,17 @@ router.get('/image', async (req, res) => {
 
 // 
 
-router.get('/mapping/:lot/:layer/:isincludefake/', async (req, res) => {
+router.get('/mapping/:lot_num/:layer/:isincludefake/', async (req, res) => {
     try {
-        const { lot, layer, isincludefake} = req.params;
-        console.log(lot, layer, isincludefake);
+        const { lot_num, layer, isincludefake} = req.params;
+        console.log(lot_num, layer, isincludefake);
         let scrappedFilter = `${Number(isincludefake) ? ' ' : " and Classify <>'0'"}`;
 
         // SN_VRS_test_result_new    
-        const sqlStr = `SELECT * from V_LayoutDetail_Jmp(nolock) where LotNum ='${lot}' and LayerName='${layer}'${scrappedFilter}`;
-        console.log(sqlStr);
+        const sqlStr = `SELECT *,Lotnum as lot_num,PartNo as part_no,trim(LayerName) as layer from V_LayoutDetail_Jmp(nolock) where LotNum ='${lot_num}' and LayerName='${layer}'${scrappedFilter}`;
+        // console.log(sqlStr);
         const result = await poolSNDc.query(sqlStr);
-        console.log(result.recordset);
+        // console.log(result.recordset);
         res.json(result.recordset);
     } catch (error) {
         console.error('操作失敗:', error);
@@ -469,17 +469,17 @@ router.get('/mapping/:lot/:layer/:isincludefake/', async (req, res) => {
 
 
 
-router.get('/layout/:lot/:layer', async (req, res) => {
-    const { lot, layer } = req.params;
+router.get('/layout/:lot_num/:layer', async (req, res) => {
+    const { lot_num, layer } = req.params;
     
     try {   
         const result = await poolSNDc.query(`SELECT DISTINCT TOP 1 a.partnum
             From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
-            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And a.revision = c.Revision And a.lotnum in ('${lot_num}')
             And b.LayerName = '${layer}'`)
         console.log(`SELECT DISTINCT TOP 1 a.partnum
             From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
-            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And a.revision = c.Revision And a.lotnum in ('${lot_num}')
             And b.LayerName = '${layer}'`);
         console.log(result.recordset);
         const { partnum } = result.recordset[0];
