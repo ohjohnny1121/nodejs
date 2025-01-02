@@ -41,11 +41,25 @@ router.use(bodyParser.json());
 router.get('/lot-list/:uid', async (req, res) => {
     const { uid } = req.params;
     console.log(uid);
+    if (typeof uid === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'uid 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `SELECT * FROM user_lot_list WHERE uid = '${uid}'`;
         const result = await queryFunc(connection, sqlStr);
+        if (result.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -70,6 +84,13 @@ router.post('/lot-list', async (req, res) => {
     const { uid, lot_list} = req.body;
     console.log(uid, lot_list);
     let connection;
+    if (typeof uid === 'undefined' || typeof lot_list === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'uid 和 lot_list 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlDel = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
@@ -77,8 +98,13 @@ router.post('/lot-list', async (req, res) => {
         console.log(sqlStr);
         const resultDel = await queryFunc(connection, sqlDel);
         const result = await queryFunc(connection, sqlStr);
-        //時間要是台灣時間
-        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到要刪除的記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -102,13 +128,26 @@ router.post('/lot-list', async (req, res) => {
 router.delete('/lot-list', async (req, res) => {
     const { uid, factory, part_no, lot_num, layer } = req.query;
     console.log(uid, factory, part_no, lot_num, layer);
+    if (typeof uid === 'undefined' || typeof factory === 'undefined' || typeof part_no === 'undefined' || typeof lot_num === 'undefined' || typeof layer === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'uid, factory, part_no, lot_num, layer 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}' AND factory = '${factory}' AND part_no = '${part_no}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
         const result = await queryFunc(connection, sqlStr);
-        //時間要是台灣時間
-        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到要刪除的記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
+
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -131,11 +170,25 @@ router.delete('/lot-list', async (req, res) => {
 router.put('/lot-list', async (req, res) => {
     const { uid, factory, part_no, lot_num, layer } = req.body;
     console.log(uid, factory, part_no, lot_num, layer);
+    if (typeof uid === 'undefined' || typeof factory === 'undefined' || typeof part_no === 'undefined' || typeof lot_num === 'undefined' || typeof layer === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'uid, factory, part_no, lot_num, layer 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `UPDATE user_lot_list SET factory = '${factory}',part_no = '${part_no}', lot_num = '${lot_num}', layer = '${layer}' WHERE uid = '${uid}'`;
         const result = await queryFunc(connection, sqlStr);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到要更新的記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -159,11 +212,27 @@ router.put('/lot-list', async (req, res) => {
 router.delete('/lot-list-all', async (req, res) => {
     const { uid } = req.query;
     console.log(uid);
+    if (typeof uid  === 'undefined' ) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'uid 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+
+
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
         const result = await queryFunc(connection, sqlStr);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到要刪除的記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -185,14 +254,32 @@ router.delete('/lot-list-all', async (req, res) => {
 });
 // 更新SN AOI 備註
 router.post('/aoi-revise-remark', async (req, res) => {
-    
-    const { lotnum, remark } = req.body;
-    // console.log(lotnum, remark);
+    const { lot_num, remark } = req.body;
+
+    // 檢查 lot_num 和 remark 是否為 undefined
+    if (typeof lot_num === 'undefined' || typeof remark === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'lot_num 和 remark 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
-        const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lot_num = '${lotnum}'`;
+        const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lot_num = '${lot_num}'`;
         const result = await queryFunc(connection, sqlStr);
+        
+        // 檢查更新結果
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到要更新的記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
+
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -213,12 +300,19 @@ router.post('/aoi-revise-remark', async (req, res) => {
 });
 
 // 獲取SN AOI 歷史資料
-router.get('/history/:lotnum', async (req, res) => {
+router.get('/history/:lot_num', async (req, res) => {
     
-    const { lotnum } = req.params;
+    const { lot_num } = req.params;
     // console.log(lotnum);
     // console.log('poolSNAcme:', poolSNAcme);
-    if (!poolSNAcme) {
+    if (typeof lot_num === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'lot_num 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+    if (!poolSNAcme) {  
         return res.status(500).json({
             status: 'error',
             message: '數據庫連接未初始化',
@@ -227,8 +321,8 @@ router.get('/history/:lotnum', async (req, res) => {
     }
     try {
         const sqlStr = `SELECT 
-                            RTRIM(a.lotnum) AS Lot,
-                            RTRIM(c.LayerName) AS Layer,
+                            RTRIM(a.lotnum) AS lot_num,
+                            RTRIM(c.LayerName) AS layer,
                             a.AftStatus AS Status,
                             a.AftStatus,
                             a.BefStatus,
@@ -243,16 +337,23 @@ router.get('/history/:lotnum', async (req, res) => {
                             INNER JOIN ProcBasic p WITH (NOLOCK) ON a.proccode = p.ProcCode
                             INNER JOIN acme.dbo.PDL_Machine e WITH (NOLOCK) ON a.machine = e.machineid
                         WHERE 
-                            RTRIM(a.lotnum) = '${lotnum}'
+                            RTRIM(a.lotnum) = '${lot_num}'
                             and a.BefStatus ='CheckIn'
                             and a.AftStatus ='CheckOut'
                         ORDER BY 
                             a.ChangeTime ASC`;
         const result = await poolSNAcme.query(sqlStr);
+        if (result.recordset.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
-            data: result,
+            data: result.recordset,
             time: getCurrentTimeInTaipei()
         });
     } catch (error) {
@@ -272,17 +373,18 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
     let connection;
     try {
         const { startDate, endDate, factory } = req.params;
-        const startTimestamp = Number(startDate);
-        const endTimestamp = Number(endDate);
-        console.log(startTimestamp, convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
 
-        if (!startDate || !endDate) {
+        if (typeof startDate === 'undefined' || typeof endDate === 'undefined' || typeof factory === 'undefined') {
             return res.status(400).json({
                 status: 'error',
-                message: '缺少必要參數',
+                message: 'startDate, endDate, factory 是必填的',
                 time: getCurrentTimeInTaipei()
             });
         }
+        const startTimestamp = Number(startDate);
+        const endTimestamp = Number(endDate);
+        console.log(startTimestamp, convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
+        
 
         // 獲取連接
         connection = await mysqlConnection(getDbConfig('aoi'));
@@ -323,7 +425,13 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         AND factory = ?`;
 
         const result = await queryFunc(connection, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
-
+        if (result.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -443,18 +551,36 @@ router.get('/image', async (req, res) => {
 
 // 
 
-router.get('/mapping/:lot/:layer/:isincludefake/', async (req, res) => {
+router.get('/mapping/:lot_num/:layer/:isincludefake/', async (req, res) => {
     try {
-        const { lot, layer, isincludefake} = req.params;
-        console.log(lot, layer, isincludefake);
+        const { lot_num, layer, isincludefake} = req.params;
+        console.log(lot_num, layer, isincludefake);
         let scrappedFilter = `${Number(isincludefake) ? ' ' : " and Classify <>'0'"}`;
-
+        if (typeof lot_num === 'undefined' || typeof layer === 'undefined' || typeof isincludefake === 'undefined') {
+            return res.status(400).json({
+                status: 'error',
+                message: 'lot_num, layer, isincludefake 是必填的',
+                time: getCurrentTimeInTaipei()
+            });
+        }
         // SN_VRS_test_result_new    
-        const sqlStr = `SELECT * from V_LayoutDetail_Jmp(nolock) where LotNum ='${lot}' and LayerName='${layer}'${scrappedFilter}`;
-        console.log(sqlStr);
+        const sqlStr = `SELECT *,Lotnum as lot_num,PartNo as part_no,trim(LayerName) as layer from V_LayoutDetail_Jmp(nolock) where LotNum ='${lot_num}' and LayerName='${layer}'${scrappedFilter}`;
+        // console.log(sqlStr);
         const result = await poolSNDc.query(sqlStr);
-        console.log(result.recordset);
-        res.json(result.recordset);
+        if (result.recordset.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
+        // console.log(result.recordset);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result.recordset,
+            time: getCurrentTimeInTaipei()
+        });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
@@ -469,17 +595,24 @@ router.get('/mapping/:lot/:layer/:isincludefake/', async (req, res) => {
 
 
 
-router.get('/layout/:lot/:layer', async (req, res) => {
-    const { lot, layer } = req.params;
-    
+router.get('/layout/:lot_num/:layer', async (req, res) => {
+    const { lot_num, layer } = req.params;
+    if (typeof lot_num === 'undefined' || typeof layer === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'lot_num, layer 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+
     try {   
         const result = await poolSNDc.query(`SELECT DISTINCT TOP 1 a.partnum
             From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
-            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And a.revision = c.Revision And a.lotnum in ('${lot_num}')
             And b.LayerName = '${layer}'`)
         console.log(`SELECT DISTINCT TOP 1 a.partnum
             From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
-            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And a.revision = c.Revision And a.lotnum in ('${lot_num}')
             And b.LayerName = '${layer}'`);
         console.log(result.recordset);
         const { partnum } = result.recordset[0];
@@ -559,8 +692,20 @@ router.get('/layout/:lot/:layer', async (req, res) => {
             dataAry.push(rightAry);
 
         });
+        if (dataAry.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
 
-        res.json({ dataAry, headdata });
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: { dataAry, headdata },
+            time: getCurrentTimeInTaipei()
+        });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
