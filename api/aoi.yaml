@@ -277,11 +277,11 @@ paths:
                   time:
                     type: string
                     format: date-time
-  /aoi/lot-list:
+  /aoi/lot-list/{uid}:
     get:
       summary: 取得用戶的 lot 列表
       parameters:
-        - in: query
+        - in: path
           name: uid
           required: true
           schema:
@@ -303,6 +303,19 @@ paths:
                     type: array
                     items:
                       type: object
+                      properties:
+                        factory:
+                          type: string
+                          description: 廠別
+                        part_no:
+                          type: string
+                          description: 料號
+                        lot_num:
+                          type: string
+                          description: 批號
+                        layer:
+                          type: string
+                          description: 層別
                   time:
                     type: string
                     format: date-time

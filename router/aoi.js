@@ -38,9 +38,10 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
-router.get('/lot-list', async (req, res) => {
-    const { uid } = req.body;
-    // console.log(uid);
+router.get('/lot-list/:uid', async (req, res) => {
+    console.log(req);
+    const { uid } = req.params;
+    console.log(uid);
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
