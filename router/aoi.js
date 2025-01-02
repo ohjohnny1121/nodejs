@@ -53,13 +53,7 @@ router.get('/lot-list/:uid', async (req, res) => {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `SELECT * FROM user_lot_list WHERE uid = '${uid}'`;
         const result = await queryFunc(connection, sqlStr);
-        if (result.length === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: '未找到記錄',
-                time: getCurrentTimeInTaipei()
-            });
-        }
+        
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -98,13 +92,6 @@ router.post('/lot-list', async (req, res) => {
         console.log(sqlStr);
         const resultDel = await queryFunc(connection, sqlDel);
         const result = await queryFunc(connection, sqlStr);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: '未找到要刪除的記錄',
-                time: getCurrentTimeInTaipei()
-            });
-        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -226,13 +213,6 @@ router.delete('/lot-list-all', async (req, res) => {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
         const result = await queryFunc(connection, sqlStr);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: '未找到要刪除的記錄',
-                time: getCurrentTimeInTaipei()
-            });
-        }
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -343,13 +323,7 @@ router.get('/history/:lot_num', async (req, res) => {
                         ORDER BY 
                             a.ChangeTime ASC`;
         const result = await poolSNAcme.query(sqlStr);
-        if (result.recordset.length === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: '未找到記錄',
-                time: getCurrentTimeInTaipei()
-            });
-        }
+        
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -425,13 +399,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         AND factory = ?`;
 
         const result = await queryFunc(connection, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
-        // if (result.length === 0) {
-        //     return res.status(404).json({
-        //         status: 'error',
-        //         message: '未找到記錄',
-        //         time: getCurrentTimeInTaipei()
-        //     });
-        // }
+        
         res.status(200).json({
             status: 'success',
             message: '成功',

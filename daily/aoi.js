@@ -373,7 +373,7 @@ const sqlSnReadOut = `
           r.NumOfLayer = "";
           r.ProdClass = "";
         }
-          
+
         
       });
      
