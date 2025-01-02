@@ -7,7 +7,7 @@ app.use(bodyParser.json());
 const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
-const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
+const { timestampToYMDHIS, convertTimestampToFormattedDate, getCurrentTimeInTaipei } = require('../time.js');
 const { initializePools, poolObj } = require('../mssql');
 const fs = require('fs');
 const Client = require('ssh2-sftp-client');
@@ -44,20 +44,20 @@ router.get('/aoi-spec', async (req, res) => {
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
-        const sqlStr = `SELECT * FROM aoi_spec`;
+        const sqlStr = `SELECT * FROM aoi_spec WHERE isdelete='false'`;
         const result = await queryFunc(connection, sqlStr);
         res.status(200).json({
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -67,27 +67,27 @@ router.get('/aoi-spec', async (req, res) => {
 });
 
 router.post('/aoi-spec', async (req, res) => {
-    const { part_no, target,triger } = req.body;
+    const { part_no, target,triger,creator } = req.body;
     // console.log(uid);
     let connection;
     try {
         connection = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}'`;
         const result = await queryFunc(connection, sqlStr);
-        const sqlStradd = `INSERT INTO aoi_spec (part_no, target, triger,isdelete) VALUES ('${part_no}', '${target}', '${triger}','false')`;
+        const sqlStradd = `INSERT INTO aoi_spec (part_no, target, triger,creator,isdelete) VALUES ('${part_no}', '${target}', '${triger}','${creator}','false')`;
         const resultadd = await queryFunc(connection, sqlStradd);
         res.status(200).json({
             status: 'success',
             message: '成功',
             data: resultadd,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     }finally{
         if (connection) {
@@ -107,14 +107,14 @@ router.delete('/aoi-spec', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
