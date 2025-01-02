@@ -68,6 +68,21 @@ function convertTimestampToFormattedDate(input) {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
+//取得台灣時間
+function getCurrentTimeInTaipei() {
+    const formatter = new Intl.DateTimeFormat('zh-TW', {
+        timeZone: 'Asia/Taipei',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    return formatter.format(new Date());
+}
+
 
 
 const funcObj={
@@ -75,7 +90,8 @@ const funcObj={
     timestampToYMDHIS2,
     timestampToYMDHIS3,
     timestampToFormattedDate,
-    convertTimestampToFormattedDate
+    convertTimestampToFormattedDate,
+    getCurrentTimeInTaipei
 }
 
 module.exports=funcObj;

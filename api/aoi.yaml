@@ -185,21 +185,6 @@ paths:
                   time:
                     type: string
                     format: date-time
-      responses:
-        '200':
-          description: Remark updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
         '500':
           description: Error updating remark
           content:
@@ -279,17 +264,17 @@ paths:
                     format: date-time
   /aoi/lot-list/{uid}:
     get:
-      summary: 取得用戶的 lot 列表
+      summary: Retrieve lot list for a specific user
       parameters:
         - in: path
           name: uid
           required: true
           schema:
             type: string
-          description: 用戶 ID
+          description: User identifier
       responses:
         '200':
-          description: 成功
+          description: Lot list retrieved successfully
           content:
             application/json:
               schema:
@@ -303,24 +288,11 @@ paths:
                     type: array
                     items:
                       type: object
-                      properties:
-                        factory:
-                          type: string
-                          description: 廠別
-                        part_no:
-                          type: string
-                          description: 料號
-                        lot_num:
-                          type: string
-                          description: 批號
-                        layer:
-                          type: string
-                          description: 層別
                   time:
                     type: string
                     format: date-time
         '500':
-          description: 操作失敗
+          description: Error retrieving lot list
           content:
             application/json:
               schema:
@@ -333,9 +305,9 @@ paths:
                   time:
                     type: string
                     format: date-time
-
+  /aoi/lot-list:
     post:
-      summary: 新增或更新用戶的 lot
+      summary: Add or update lot list for a user
       requestBody:
         required: true
         content:
@@ -345,7 +317,7 @@ paths:
               properties:
                 uid:
                   type: string
-                  description: 工號
+                  description: User identifier
                 lot_list:
                   type: array
                   items:
@@ -353,19 +325,15 @@ paths:
                     properties:
                       factory:
                         type: string
-                        description: 廠別
                       part_no:
                         type: string
-                        description: 料號
                       lot_num:
                         type: string
-                        description: 批號
                       layer:
                         type: string
-                  description: 層別
       responses:
         '200':
-          description: 成功
+          description: Lot list updated successfully
           content:
             application/json:
               schema:
@@ -376,12 +344,14 @@ paths:
                   message:
                     type: string
                   data:
-                    type: object
+                    type: array
+                    items:
+                      type: object
                   time:
                     type: string
                     format: date-time
         '500':
-          description: 操作失敗
+          description: Error updating lot list
           content:
             application/json:
               schema:
@@ -394,43 +364,42 @@ paths:
                   time:
                     type: string
                     format: date-time
-
     delete:
-      summary: 刪除用戶的特定 lot、layer
+      summary: Delete a specific lot from the user's lot list
       parameters:
         - in: query
           name: uid
           required: true
           schema:
             type: string
-          description: 工號
+          description: User identifier
         - in: query
           name: factory
           required: true
           schema:
             type: string
-          description: 廠別
+          description: Factory identifier
         - in: query
           name: part_no
           required: true
           schema:
             type: string
-          description: 料號
+          description: Part number
         - in: query
           name: lot_num
           required: true
           schema:
             type: string
-          description: 批號
+          description: Lot number
         - in: query
           name: layer
           required: true
           schema:
             type: string
-          description: 層別
+          description: Layer
       responses:
         '200':
-          description: 成功
+          description: Lot deleted successfully
           content:
             application/json:
               schema:
@@ -441,12 +410,14 @@ paths:
                   message:
                     type: string
                   data:
-                    type: object
+                    type: array
+                    items:
+                      type: object
                   time:
                     type: string
                     format: date-time
         '500':
-          description: 操作失敗
+          description: Error deleting lot
           content:
             application/json:
               schema:
@@ -459,20 +430,19 @@ paths:
                   time:
                     type: string
                     format: date-time
-
   /aoi/lot-list-all:
     delete:
-      summary: 刪除用戶的所有 lot
+      summary: Delete all lots for a specific user
       parameters:
         - in: query
           name: uid
           required: true
           schema:
             type: string
-          description: 用戶 ID
+          description: User identifier
       responses:
         '200':
-          description: 成功
+          description: All lots deleted successfully
           content:
             application/json:
               schema:
@@ -483,12 +453,14 @@ paths:
                   message:
                     type: string
                   data:
-                    type: object
+                    type: array
+                    items:
+                      type: object
                   time:
                     type: string
                     format: date-time
         '500':
-          description: 操作失敗
+          description: Error deleting all lots
           content:
             application/json:
               schema:
@@ -500,4 +472,7 @@ paths:
                     type: string
                   time:
                     type: string
-                    format: date-time 
+                    format: date-time
+  
+                  
+  
