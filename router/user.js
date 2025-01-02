@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
-const { timestampToYMDHIS } = require('../time.js');
+const { timestampToYMDHIS, getCurrentTimeInTaipei } = require('../time.js');
 
 const router = express.Router();
 
@@ -52,9 +52,7 @@ router.post('/login', async (req, res) => {
     // args.EMPID = 'A4378';
     // args.PWD = '16736';
     //給我一個現在時間的函式
-    const now = new Date();
-    console.log('現在時間',now);
-    const time=now.getTime()
+    const time=getCurrentTimeInTaipei()
     console.log('時間戳',time);
     let connection;
     try {
@@ -159,10 +157,10 @@ router.get('/getwhitelist', async (req, res) => {
         connection = await mysqlConnection(getDbConfig('user'));
         const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false'`;
         const result = await queryFunc(connection, sqlStr);
-        res.json({status: 'success', message: '成功', data: result, time});
+        res.json({status: 'success', message: '成功', data: result, time:getCurrentTimeInTaipei()});
     } catch (error) {
         console.error('獲取白名單失敗:', error);
-        res.status(500).json({status: 'error', message: '獲取失敗', time});
+        res.status(500).json({status: 'error', message: '獲取失敗', time:getCurrentTimeInTaipei()});
     } finally {
         if (connection) {
             try {
@@ -179,12 +177,12 @@ const verifyToken = (req, res, next) => {
     const time=new Date().getTime()
     const token = req.headers['authorization'];
     if (!token) {
-        return res.status(401).json({ status: 'error', message: '未登入' ,time});
+        return res.status(401).json({ status: 'error', message: '未登入' ,time:getCurrentTimeInTaipei()});
     }
 
     jwt.verify(token, key, (err, user) => {
         if (err) {
-            return res.status(403).json({ status: 'error', message: '驗證錯誤' ,time});
+            return res.status(403).json({ status: 'error', message: '驗證錯誤' ,time:getCurrentTimeInTaipei()});
         }
         req.user = user;
         next();
@@ -193,13 +191,13 @@ const verifyToken = (req, res, next) => {
 
 // 驗證路由
 router.get('/verify', verifyToken, (req, res) => {
-    const time=new Date().getTime()
+    const time=getCurrentTimeInTaipei()
     res.json({ status: 'success', message: '成功', user: req.user,time });
 });
 
 // 記錄路由
 router.post('/record', verifyToken, async (req, res) => {
-    const time = new Date().getTime();
+    const time = getCurrentTimeInTaipei();
     let connection;
     try {
         const { ID, Name, DeptName, Time, Path } = req.body;
@@ -226,7 +224,7 @@ router.post('/record', verifyToken, async (req, res) => {
 
 // 獲取記錄數量
 router.get('/record/:st', verifyToken, async (req, res) => {
-    const time = new Date().getTime();
+    const time = getCurrentTimeInTaipei();
     let connection;
     try {
         const { st } = req.params;
@@ -254,7 +252,7 @@ router.get('/record/:st', verifyToken, async (req, res) => {
 
 
 router.post('/revisewhitelist', async (req, res) => {
-    const time = new Date().getTime();
+    const time = getCurrentTimeInTaipei();
     console.log(time);
     // 將時間戳轉換為日期 格式為2024-12-20 00:00:00
     const date = new Date(time);

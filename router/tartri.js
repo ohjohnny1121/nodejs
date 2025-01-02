@@ -7,7 +7,7 @@ app.use(bodyParser.json());
 const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
-const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
+const { timestampToYMDHIS, convertTimestampToFormattedDate, getCurrentTimeInTaipei } = require('../time.js');
 const { initializePools, poolObj } = require('../mssql');
 const fs = require('fs');
 const Client = require('ssh2-sftp-client');
@@ -50,14 +50,14 @@ router.get('/aoi-spec', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -80,14 +80,14 @@ router.post('/aoi-spec', async (req, res) => {
             status: 'success',
             message: '成功',
             data: resultadd,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     }finally{
         if (connection) {
@@ -107,14 +107,14 @@ router.delete('/aoi-spec', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
