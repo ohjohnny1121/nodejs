@@ -60,6 +60,8 @@ paths:
                   type: string
                 triger:
                   type: string
+                creator:
+                  type: string
       responses:
         '200':
           description: 成功
