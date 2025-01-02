@@ -7,7 +7,7 @@ app.use(bodyParser.json());
 const { configFunc } = require('../config.js');
 const { mysqlConnection, queryFunc } = require('../mysql.js');
 const getDbConfig = require('../config/database');
-const { timestampToYMDHIS, convertTimestampToFormattedDate } = require('../time.js');
+const { timestampToYMDHIS, convertTimestampToFormattedDate, getCurrentTimeInTaipei } = require('../time.js');
 const { initializePools, poolObj } = require('../mssql');
 const fs = require('fs');
 const Client = require('ssh2-sftp-client');
@@ -39,7 +39,6 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 router.get('/lot-list/:uid', async (req, res) => {
-    console.log(req);
     const { uid } = req.params;
     console.log(uid);
     let connection;
@@ -51,14 +50,14 @@ router.get('/lot-list/:uid', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -78,18 +77,20 @@ router.post('/lot-list', async (req, res) => {
         console.log(sqlStr);
         const resultDel = await queryFunc(connection, sqlDel);
         const result = await queryFunc(connection, sqlStr);
+        //時間要是台灣時間
+        
         res.status(200).json({
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date())
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -112,14 +113,14 @@ router.delete('/lot-list', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -139,14 +140,14 @@ router.put('/lot-list', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -167,14 +168,14 @@ router.delete('/lot-list-all', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -195,14 +196,14 @@ router.post('/aoi-revise-remark', async (req, res) => {
         res.status(200).json({
             status: 'success',
             message: '成功',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -221,7 +222,7 @@ router.get('/history/:lotnum', async (req, res) => {
         return res.status(500).json({
             status: 'error',
             message: '數據庫連接未初始化',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     }
     try {
@@ -252,14 +253,14 @@ router.get('/history/:lotnum', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('操作失敗:', error);
         res.status(500).json({
             status: 'error',
             message: error.message || '查詢失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } 
 });
@@ -279,7 +280,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             return res.status(400).json({
                 status: 'error',
                 message: '缺少必要參數',
-                time: timestampToYMDHIS(new Date('Asia/Taipei'))
+                time: getCurrentTimeInTaipei()
             });
         }
 
@@ -327,7 +328,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             status: 'success',
             message: '成功',
             data: result,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
 
     } catch (error) {
@@ -335,7 +336,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: error.message || '記錄創建失敗',
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } finally {
         if (connection) {
@@ -426,7 +427,7 @@ router.get('/image', async (req, res) => {
             status: status,
             message: message,
             image: imageBase64,
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     } catch (error) {
         console.error('Error retrieving image:', error);
@@ -434,7 +435,7 @@ router.get('/image', async (req, res) => {
             status: 'error',
             message: error.message || 'Failed to retrieve image',
             image: "",
-            time: timestampToYMDHIS(new Date('Asia/Taipei'))
+            time: getCurrentTimeInTaipei()
         });
     }
 });
