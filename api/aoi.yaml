@@ -504,14 +504,14 @@ paths:
                   image:
                     type: string
 
-  /aoi/mapping/{lot}/{layer}/{isincludefake}:
+  /aoi/mapping/{lot_num}/{layer}/{isincludefake}:
     get:
       tags:
         - AOI Mapping
       summary: Retrieve mapping data for a specific lot and layer
       parameters:
         - in: path
-          name: lot
+          name: lot_num
           required: true
           schema:
             type: string
@@ -552,14 +552,14 @@ paths:
                     type: string
                     format: date-time
 
-  /aoi/layout/{lot}/{layer}:
+  /aoi/layout/{lot_num}/{layer}:
     get:
       tags:
         - AOI Mapping
       summary: Retrieve layout data for a specific lot and layer
       parameters:
         - in: path
-          name: lot
+          name: lot_num
           required: true
           schema:
             type: string
