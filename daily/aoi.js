@@ -373,17 +373,7 @@ const sqlSnReadOut = `
           r.NumOfLayer = "";
           r.ProdClass = "";
         }
-  
-        if (triIdx !== -1) {
-          const { core, bu } = triggerData[triIdx];
-          if (r.LayerName === "-Outer" && r.LayerType !== "CORE") {
-            r.triger = bu;
-          } else {
-            r.triger = r.LayerType === "CORE" ? core : (layerCheck === 1 ? core : bu);
-          }
-        } else {
-          r.triger = "";
-        }
+          
         
       });
      

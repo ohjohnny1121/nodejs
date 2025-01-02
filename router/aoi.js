@@ -441,4 +441,137 @@ router.get('/image', async (req, res) => {
 });
 
 
+// 
+
+router.get('/mapping/:lot/:layer/:isincludefake/', async (req, res) => {
+    try {
+        const { lot, layer, isincludefake} = req.params;
+        console.log(lot, layer, isincludefake);
+        let scrappedFilter = `${Number(isincludefake) ? ' ' : " and Classify <>'0'"}`;
+
+        // SN_VRS_test_result_new    
+        const sqlStr = `SELECT * from V_LayoutDetail_Jmp(nolock) where LotNum ='${lot}' and LayerName='${layer}'${scrappedFilter}`;
+        console.log(sqlStr);
+        const result = await poolSNDc.query(sqlStr);
+        console.log(result.recordset);
+        res.json(result.recordset);
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    } finally {
+        
+    }
+});
+
+
+
+router.get('/layout/:lot/:layer', async (req, res) => {
+    const { lot, layer } = req.params;
+    
+    try {   
+        const result = await poolSNDc.query(`SELECT DISTINCT TOP 1 a.partnum
+            From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
+            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And b.LayerName = '${layer}'`)
+        console.log(`SELECT DISTINCT TOP 1 a.partnum
+            From acme.dbo.pdl_ckhistory a(nolock), acme.dbo.numoflayer b, acme.dbo.prodbasic c where a.layer = b.Layer  And a.partnum = c.PartNum
+            And a.revision = c.Revision And a.lotnum in ('${lot}')
+            And b.LayerName = '${layer}'`);
+        console.log(result.recordset);
+        const { partnum } = result.recordset[0];
+        const result2 = await poolSNDc.query(`SELECT DISTINCT TOP 1 Filmpart FROM SN_FilmPart_Map(nolock)
+            where Acmepart = '${partnum}'`)
+        const { Filmpart } = result2.recordset[0];
+        console.log(Filmpart);
+        const sqlBody = `SELECT DISTINCT CompXUpper,CompXLower,CompYUpper,CompYLower From SN_Layout_Center_Body a(nolock) where JobName ='${Filmpart}'`;
+        const sqlHead = `SELECT MpLtX*MpLtY*4 UPP from SN_Layout_Center_Head(nolock) WHERE JobName ='${Filmpart}'`;
+        const result3 = await Promise.all([poolSNDc.query(sqlBody), poolSNDc.query(sqlHead)])
+        const data = result3[0].recordset;
+        const headdata = result3[1].recordset;
+
+        const mixinX = [...new Set([...data.map((i) => i.CompXUpper), ...data.map((i) => i.CompXLower)])].sort((a, b) => a - b);
+        const mixinY = [...new Set([...data.map((i) => i.CompYUpper), ...data.map((i) => i.CompYLower)])].sort((a, b) => a - b);
+
+        let dataAry = [];
+
+        mixinX.forEach((x) => {
+
+            const downAry = [];
+            const topAry = [];
+
+            const objdownbPoint = {};
+            const objdownePoint = {};
+            const objtopbPoint = {};
+            const objtopePoint = {};
+
+            objdownbPoint.x = x;
+            objdownbPoint.y = mixinY[0];
+            objdownePoint.x = x;
+            objdownePoint.y = mixinY[mixinY.length / 2 - 1];
+
+            objtopbPoint.x = x;
+            objtopbPoint.y = mixinY[mixinY.length / 2];
+            objtopePoint.x = x;
+            objtopePoint.y = mixinY[mixinY.length - 1];
+
+            downAry.push(objdownbPoint);
+            downAry.push(objdownePoint);
+
+            topAry.push(objtopbPoint);
+            topAry.push(objtopePoint);
+
+            dataAry.push(downAry);
+            dataAry.push(topAry);
+
+        });
+
+        mixinY.forEach((y) => {
+
+            const leftAry = [];
+            const rightAry = [];
+
+            const objleftbPoint = {};
+            const objleftePoint = {};
+            const objrightbPoint = {};
+            const objrightePoint = {};
+
+            objleftbPoint.x = mixinX[0];
+            objleftbPoint.y = y;
+            objleftePoint.x = mixinX[mixinX.length / 2 - 1];
+            objleftePoint.y = y;
+
+            objrightbPoint.x = mixinX[mixinX.length / 2];
+            objrightbPoint.y = y;
+            objrightePoint.x = mixinX[mixinX.length - 1];
+            objrightePoint.y = y;
+
+            leftAry.push(objleftbPoint);
+            leftAry.push(objleftePoint);
+
+            rightAry.push(objrightbPoint);
+            rightAry.push(objrightePoint);
+
+            dataAry.push(leftAry);
+            dataAry.push(rightAry);
+
+        });
+
+        res.json({ dataAry, headdata });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    } finally {
+        
+    }
+});
+
+
 module.exports = router;
