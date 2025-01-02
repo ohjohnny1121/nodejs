@@ -47,8 +47,9 @@ paths:
                   time:
                     type: string
                     format: date-time
-        '404':
-          description: Not found
+
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
@@ -56,11 +57,6 @@ paths:
                 properties:
                   status:
                     type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
         '500':
           description: Error retrieving lot list
           content:
@@ -432,7 +428,7 @@ paths:
                   time:
                     type: string
                     format: date-time
-  
+
   /aoi/image:
     get:
       tags:
