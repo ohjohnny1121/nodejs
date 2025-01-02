@@ -425,13 +425,13 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         AND factory = ?`;
 
         const result = await queryFunc(connection, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
-        if (result.length === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: '未找到記錄',
-                time: getCurrentTimeInTaipei()
-            });
-        }
+        // if (result.length === 0) {
+        //     return res.status(404).json({
+        //         status: 'error',
+        //         message: '未找到記錄',
+        //         time: getCurrentTimeInTaipei()
+        //     });
+        // }
         res.status(200).json({
             status: 'success',
             message: '成功',

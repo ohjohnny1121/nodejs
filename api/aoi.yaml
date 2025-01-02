@@ -432,21 +432,7 @@ paths:
                   time:
                     type: string
                     format: date-time
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
-
+  
   /aoi/image:
     get:
       tags:
