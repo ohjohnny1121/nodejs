@@ -79,11 +79,6 @@ router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
             await connection.release();
         }
     }
-    res.status(200).json({
-        status: 'success',
-        message: '成功',
-        time: getCurrentTimeInTaipei()
-    });
 });
 
 
