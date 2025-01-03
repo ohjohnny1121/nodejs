@@ -16,6 +16,87 @@ tags:
   - name: Image Retrieval
     description: Operations related to image retrieval
 paths:
+  /aoi/lot-list/{factory}/{lot_num}/{layer}:
+    get:
+      tags:
+        - Lot Management
+      summary: Retrieve lot list for a specific lot
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+        - in: path
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: Layer
+      responses:
+        '200':
+          description: Lot list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving lot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
   /aoi/lot-list/{uid}:
     get:
       tags:
@@ -47,7 +128,6 @@ paths:
                   time:
                     type: string
                     format: date-time
-
         '400':
           description: Bad request
           content:
