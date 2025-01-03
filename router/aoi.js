@@ -38,6 +38,55 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
+
+router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
+    const { factory, lot_num, layer } = req.params;
+    console.log(factory, lot_num, layer);
+    if (typeof factory === 'undefined' || typeof lot_num === 'undefined' || typeof layer === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'factory, lot_num, layer 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+    let connection;
+    try {
+        connection = await mysqlConnection(getDbConfig('aoi'));
+        const sqlStr = `SELECT * FROM aoi_yield_defect WHERE factory = '${factory}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
+        const result = await queryFunc(connection, sqlStr);
+        if (result.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: '未找到記錄',
+                time: getCurrentTimeInTaipei()
+            });
+        }
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    } finally {
+        if (connection) {
+            await connection.release();
+        }
+    }
+    res.status(200).json({
+        status: 'success',
+        message: '成功',
+        time: getCurrentTimeInTaipei()
+    });
+});
+
+
 router.get('/lot-list/:uid', async (req, res) => {
     const { uid } = req.params;
     console.log(uid);
@@ -685,6 +734,5 @@ router.get('/layout/:lot_num/:layer', async (req, res) => {
         
     }
 });
-
 
 module.exports = router;
