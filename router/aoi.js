@@ -14,12 +14,12 @@ const Client = require('ssh2-sftp-client');
 
 
 const router = express.Router();
-let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
+let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme,poolSNNCN;
 router.use(async (req, res, next) => {
     try {
         if (!poolAcme) {
             await initializePools();
-            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc, poolH3Acme } = poolObj);
+            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc, poolH3Acme,poolSNNCN } = poolObj);
             // console.log('Initialized pools:', poolObj);
         }
         res.setHeader("Access-Control-Allow-Origin", "*");
@@ -730,4 +730,58 @@ router.get('/layout/:lot_num/:layer', async (req, res) => {
     }
 });
 
+
+
+//NCN
+router.get('/ncnrecord/:lot', async (req, res) => {
+
+    const { lot } = req.params;
+    if (typeof lot === 'undefined') {
+        return res.status(400).json({
+            status: 'error',
+            message: 'lot 是必填的',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+    try {
+        const result = await poolSNNCN.query(`
+            SELECT
+                lot_no,
+                ncn_no,
+                open_datetime,
+                SUBSTRING(Layer,CHARINDEX('/',Layer)+2,LEN(Layer))Layer,
+                Case when SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode))='' then Failure_mode else SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode)) end Failure_mode,
+                Problem_des,
+                Prd_qty,
+                Defect_qty,
+                Prd_unit,
+                Defect_unit,
+                ncn_level 
+            FROM 
+                MRB_Detail(nolock)
+            WHERE 
+                lot_no = '${lot}' OR ncn_no IN (SELECT ncn_no FROM MRB_WIP(nolock) WHERE WIP_LN ='${lot}' OR WIP_PN ='${lot}' )
+            AND 
+                mrb_status='Y' 
+            ORDER BY 
+                layer desc
+        `)
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result.recordset,
+            time: getCurrentTimeInTaipei()
+        });
+
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    } finally {
+        
+    }       
+});
 module.exports = router;
