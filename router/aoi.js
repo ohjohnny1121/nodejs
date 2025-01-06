@@ -461,7 +461,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
