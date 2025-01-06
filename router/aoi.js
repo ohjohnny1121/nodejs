@@ -472,24 +472,20 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
 // 獲取AOI 圖片
 router.get('/image', async (req, res) => {
     try {
-        const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue, factory } = req.query;
+        const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue} = req.query;
         
         let imageBase64 = "";
         let status = "success";
         let message = "Image retrieved successfully";
 
-        if (factory === "YM" || !ImagePath.includes("10.23.204.68")) {
-            const imageBuffer = fs.readFileSync(`${ImagePath}/${DefectSeq}.jpg`);
-            imageBase64 = imageBuffer.toString("base64");
-        } else if (factory === "SN" || ImagePath.includes("10.23.204.68")) {
-            const filePath = ImagePath.replace(/^\\\\[\d\.]+/, "");
-            const sftp = new Client();
-            await sftp.connect({
-                host: "10.23.60.3",
-                port: 22,
-                username: "Lthmanager_user",
-                password: "1qazXSW@user",
-            });
+        const filePath = ImagePath.replace(/^\\\\[\d\.]+/, "");
+        const sftp = new Client();
+        await sftp.connect({
+            host: "10.23.60.3",
+            port: 22,
+            username: "Lthmanager_user",
+            password: "1qazXSW@user",
+        });
 
             let finalPath = "";
             const xOffSet = -7;
@@ -540,8 +536,7 @@ router.get('/image', async (req, res) => {
                 status = "error";
                 message = "Image not found";
             }
-            sftp.end();
-        }
+        sftp.end();
 
         res.json({
             status: status,
