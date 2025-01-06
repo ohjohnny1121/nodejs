@@ -27,7 +27,18 @@ const swaggerAoi = YAML.load(path.join(__dirname, 'api', 'aoi.yaml'));
 const swaggerUser = YAML.load(path.join(__dirname, 'api', 'user.yaml'));
 const swaggerTartri = YAML.load(path.join(__dirname, 'api', 'tartri.yaml'));
 // 設定每天早上 8:00 執行
-cron.schedule('55 22 14 * * *', async () => {
+cron.schedule('01 00 08 * * *', async () => {
+    try {
+        console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/transfer`);
+    } catch (error) {
+        console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
+    }
+});
+
+// 固定時間執行
+cron.schedule('24 37 09 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);

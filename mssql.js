@@ -130,6 +130,14 @@ const dbConfigs = {
     options: defaultOptions,
     pool: defaultPoolConfig,
   },
+  SNNCN:{
+    server: "UTCSNCIMDB",
+    user: "snyip",
+    password: "sq4NM$*0",
+    database: "NCN",
+    options: defaultOptions,
+    pool: defaultPoolConfig,
+  }
 };
 
 // 連接池創建工廠

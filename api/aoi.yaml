@@ -15,6 +15,8 @@ tags:
     description: Operations related to AOI data retrieval
   - name: Image Retrieval
     description: Operations related to image retrieval
+  - name: NCN
+    description: Operations related to NCN
 paths:
   /aoi/lot-list/{factory}/{lot_num}/{layer}:
     get:
@@ -680,6 +682,72 @@ paths:
                       type: object
         '500':
           description: Error retrieving layout data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/ncnrecord/{lot_num}:
+    get:
+      tags:
+        - NCN
+      summary: Retrieve NCN record for a specific lot
+      parameters:
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+      responses:
+        '200':
+          description: NCN record retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ncn_no:
+                      type: string
+                    open_datetime:
+                      type: string
+                    layer:
+                      type: string
+                    failure_mode:
+                      type: string
+                    problem_des:
+                      type: string
+                    prd_qty:
+                      type: number
+                    defect_qty:
+                      type: number
+                    prd_unit:
+                      type: string
+                    defect_unit:
+                      type: string
+                    ncn_level:
+                      type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        '500':
+          description: Error retrieving NCN record
           content:
             application/json:
               schema:
