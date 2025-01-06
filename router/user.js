@@ -141,7 +141,7 @@ router.post('/login', async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
@@ -164,7 +164,7 @@ router.get('/getwhitelist', async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
@@ -214,7 +214,7 @@ router.post('/record', verifyToken, async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
@@ -242,7 +242,7 @@ router.get('/record/:st', verifyToken, async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
@@ -321,7 +321,7 @@ router.post('/revisewhitelist', async (req, res) => {
     } finally {
         if (connection) {
             try {
-                connection.release();
+                await connection.release();
             } catch (err) {
                 console.error('釋放連接失敗:', err);
             }
