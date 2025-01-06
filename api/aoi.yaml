@@ -553,12 +553,6 @@ paths:
           schema:
             type: number
           description: Y coordinate value
-        - in: query
-          name: factory
-          required: true
-          schema:
-            type: string
-          description: Factory identifier
       responses:
         '200':
           description: Image retrieved successfully
