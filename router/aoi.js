@@ -77,7 +77,6 @@ router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -115,7 +114,6 @@ router.get('/lot-list/:uid', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -154,7 +152,6 @@ router.post('/lot-list', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -198,7 +195,6 @@ router.delete('/lot-list', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -240,7 +236,6 @@ router.put('/lot-list', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -278,7 +273,6 @@ router.delete('/lot-list-all', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -325,7 +319,6 @@ router.post('/aoi-revise-remark', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });
@@ -471,7 +464,6 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
-            await connection.destroy();
         }
     }
 });

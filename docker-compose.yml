@@ -13,6 +13,11 @@ services:
       MYSQL_ROOT_PASSWORD: pwd123
       MYSQL_USER: user
       MYSQL_PASSWORD: pwd123
+      MYSQL_MAX_CONNECTIONS: 1000
+      MYSQL_WAIT_TIMEOUT: 10
+      MYSQL_INTERACTIVE_TIMEOUT: 10
+      MYSQL_THREAD_CACHE_SIZE: 128
+
 
     volumes:
       - /d/sn-mysql:/var/lib/mysql  # 本地 SSD 位置

@@ -15,7 +15,7 @@ async function createPool(config) {
         const pool = mysql.createPool({
             ...config,
             waitForConnections: true,
-            connectionLimit: 10,
+            connectionLimit: 200,
             queueLimit: 0,
             // 設置空閒超時
             idleTimeout: 60000 // 60秒

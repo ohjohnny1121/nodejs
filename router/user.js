@@ -142,7 +142,6 @@ router.post('/login', async (req, res) => {
         if (connection) {
             
             await connection.release();
-            await connection.destroy();
             
         }
     }
@@ -164,7 +163,6 @@ router.get('/getwhitelist', async (req, res) => {
         if (connection) {
             
             await connection.release();
-            await connection.destroy();
             
         }
     }
@@ -213,7 +211,6 @@ router.post('/record', verifyToken, async (req, res) => {
         if (connection) {
             
             await connection.release();
-            await connection.destroy();
             
         }
     }
@@ -240,7 +237,6 @@ router.get('/record/:st', verifyToken, async (req, res) => {
         if (connection) {
             
             await connection.release();
-            await connection.destroy();
             
         }
     }
@@ -318,7 +314,6 @@ router.post('/revisewhitelist', async (req, res) => {
         if (connection) {
             
             await connection.release();
-            await connection.destroy();
             
         }
     }
