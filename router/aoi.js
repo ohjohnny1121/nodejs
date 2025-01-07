@@ -553,6 +553,14 @@ router.get('/image', async (req, res) => {
             status = "error";
             message = "Image not found";
         }
+        res.json({
+            status: 'success',
+            message: '成功',
+            image: imageBase64,
+            time: getCurrentTimeInTaipei()
+        });
+
+
     } catch (error) {
         console.error('Error retrieving image:', error);
         res.status(500).json({
@@ -566,12 +574,7 @@ router.get('/image', async (req, res) => {
         sftp.end(); // 確保連接結束
     }
 
-    res.json({
-        status: status,
-        message: message,
-        image: imageBase64,
-        time: getCurrentTimeInTaipei()
-    });
+    
 });
 
 
