@@ -80,6 +80,18 @@ function startHeartbeat() {
     }, 30000); // 每30秒執行一次
 }
 
+/**
+ * 在應用程序退出時關閉所有連接池
+ */
+function closePools() {
+    for (const pool of pools.values()) {
+        pool.end().catch(error => console.error('關閉連接池失敗:', error));
+    }
+}
+
+process.on('SIGINT', closePools);
+process.on('SIGTERM', closePools);
+
 module.exports = {
     mysqlConnection,
     queryFunc,

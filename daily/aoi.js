@@ -169,7 +169,7 @@ const sqlSnReadOut = `
         // console.log(snvrs);
       // const snvrsResult = await poolSNDc.query(snvrs);
       // res.json(snvrsResult.recordset);
-      const sqlTrigger = `SELECT * FROM sn_aoi_trigger`;
+      const sqlTrigger = `SELECT * FROM aoi_spec`;
       const sqlSf = `SELECT DISTINCT LEFT(PartNum,7) PN ,ULMark94V,NumOfLayer,ProdClass FROM
         prodbasic WHERE LEFT(PartNum,4)<>'UMGL' AND ULMark94V <>''`;
       const sqlLayout = `SELECT DISTINCT left(JobName,7) JobName ,MpLtX,MpLtY from SN_Layout_Center_Head(nolock)`;
@@ -177,29 +177,23 @@ const sqlSnReadOut = `
       // 並行執行多個查詢
       const [snvrsResult,triggerResult,sfResult,layoutResult] = await Promise.all([
         poolSNDc.query(snvrs),
-        // poolAcme.query(sqlSf),
         queryFunc(aoiconn,sqlTrigger),
-        // poolDc.query(sqlTrigger),
         poolSNAcme.query(sqlSf),
         poolSNDc.query(sqlLayout)
-      ]);
-      // res.json(triggerResult);
-      
+      ]); 
       const rawData = snvrsResult.recordset;
       const triggerData = triggerResult;
-      // res.json(rawData);
       const sfData = sfResult.recordset;
       const layoutData = layoutResult.recordset;
       const summaryData = [];
-      // res.json(rawData);
       // 處理數據
       rawData.forEach((r) => {
         const layerAry = r.LayerName.split("L");
         const layerCheck = (Number(layerAry[2]) - Number(layerAry[1]) + 1) / 2;
   
         const sfIdx = sfData.findIndex(s => r.PartNo === s.PN);
-        const triIdx = triggerData.findIndex(t => r.PartNo === t.shortpart);
-        const layoutIdx = layoutData.findIndex(l => r.PartNo === l.JobName);
+        // const triIdx = triggerData.findIndex(t => r.PartNo.toUpperCase() === t.part_no.toUpperCase());
+        const layoutIdx = layoutData.findIndex(l => r.PartNo.toUpperCase() === l.JobName.toUpperCase());
 
         if(layoutIdx !== -1){
           const { MpLtX, MpLtY } = layoutData[layoutIdx];
@@ -221,20 +215,28 @@ const sqlSnReadOut = `
           r.NumOfLayer = "";
           r.ProdClass = "";
         }
-
+        // 處理 trigger 和 target
+        // console.log(triIdx,triggerData[triIdx],r.PartNo);
+        // if(triIdx !== -1){
+        //   r.triger = triggerData[triIdx].triger;
+        //   r.target = triggerData[triIdx].target;
+        // }else{
+        //   r.triger = "";
+        //   r.target = "";
+        // }
         
       });
-     
+     res.json(rawData);
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
-          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.Qnty_S}~${r.ChangeTime}~${r.ProdClass}~${r.triger}`
+          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.Qnty_S}~${r.ChangeTime}~${r.ProdClass}`
         )
       )];
   
       // 處理每個批次的資料
       lot_layer_qty.forEach((i) => {
-        const [PartNo, LotNum, LayerName, LayerType, LotType, qty, ChangeTime, ProdClass, triger] = i.split("~");
+        const [PartNo, LotNum, LayerName, LayerType, LotType, qty, ChangeTime, ProdClass] = i.split("~");
         const Obj = {};
   
         const filterData = rawData.filter(r => 
@@ -334,7 +336,7 @@ const sqlSnReadOut = `
           Time: timestampToYMDHIS(ChangeTime),
           ProdClass,
           Factory: snReadOutResult.recordset.find(i => i.lotnum.trim() === LotNum).Factory,
-          triger,
+          // triger,
           MpLtX: mpLtX,
           MpLtY: mpLtY,
         });
@@ -366,7 +368,7 @@ const sqlSnReadOut = `
             'remark',
             'time',
             'prod_class',
-            'triger',
+            // 'triger',
             'mp_lt_x',
             'mp_lt_y',
             'lot_type',
