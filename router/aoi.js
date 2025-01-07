@@ -460,90 +460,99 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         });
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            await connection.release();
         }
     }
 });
 
 // 獲取AOI 圖片
 router.get('/image', async (req, res) => {
+    const sftp = new Client();
     try {
-        const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue} = req.query;
+        const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue } = req.query;
         
         let imageBase64 = "";
         let status = "success";
         let message = "Image retrieved successfully";
 
         const filePath = ImagePath.replace(/^\\\\[\d\.]+/, "");
-        const sftp = new Client();
-        await sftp.connect({
-            host: "10.23.60.3",
-            port: 22,
-            username: "Lthmanager_user",
-            password: "1qazXSW@user",
-        });
 
-            let finalPath = "";
-            const xOffSet = -7;
-            let xValueNum = Number(xValue);
-            let yValueNum = Number(yValue);
+        // 重試邏輯
+        const connectWithRetry = async (maxAttempts = 5) => {
+            let attempts = 0;
+            while (attempts < maxAttempts) {
+                try {
+                    await sftp.connect({
+                        host: "10.23.60.3",
+                        port: 22,
+                        username: "Lthmanager_user",
+                        password: "1qazXSW@user",
+                    });
+                    return; // 連接成功
+                } catch (error) {
+                    attempts++;
+                    console.error(`FTP 連接失敗，嘗試次數: ${attempts}`);
+                    if (attempts >= maxAttempts) {
+                        throw new Error('無法連接到 FTP 伺服器');
+                    }
+                    await new Promise(res => setTimeout(res, 1000)); // 等待1秒後重試
+                }
+            }
+        };
 
-            if (filePath.includes("ai_service")) {
-                const exists = await sftp.exists(filePath);
-                if (!exists) {
-                    if (filePath.includes("ud1")) {
-                        const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                        const isOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                        if (isNonOffsetExists) {
-                            finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                        }
-                        if (isOffsetExists) {
-                            finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                        }
-                    }
-                    if (filePath.includes("ud2")) {
-                        const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                        const isOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                        if (isNonOffsetExists) {
-                            finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                        }
-                        if (isOffsetExists) {
-                            finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                        }
-                    }
-                } else {
-                    const isOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    const isNonOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    if (isOffsetExists) {
-                        finalPath = `${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                    }
+        await connectWithRetry(); // 嘗試連接
+
+        let finalPath = "";
+        const xOffSet = -7;
+        let xValueNum = Number(xValue);
+        let yValueNum = Number(yValue);
+
+        // 構建 finalPath
+        if (filePath.includes("ai_service")) {
+            const exists = await sftp.exists(filePath);
+            if (!exists) {
+                if (filePath.includes("ud1")) {
+                    const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                    const isOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
                     if (isNonOffsetExists) {
-                        finalPath = `${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                        finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                    }
+                    if (isOffsetExists) {
+                        finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                    }
+                }
+                if (filePath.includes("ud2")) {
+                    const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                    const isOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                    if (isNonOffsetExists) {
+                        finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                    }
+                    if (isOffsetExists) {
+                        finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
                     }
                 }
             } else {
-                finalPath = `${filePath}/${DefectSeq}.jpg`;
+                const isOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                const isNonOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
+                if (isOffsetExists) {
+                    finalPath = `${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                }
+                if (isNonOffsetExists) {
+                    finalPath = `${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
+                }
             }
+        } else {
+            finalPath = `${filePath}/${DefectSeq}.jpg`;
+        }
 
-            const buffer = await sftp.get(finalPath);
-            if (buffer) {
-                imageBase64 = buffer.toString("base64");
-            } else {
-                status = "error";
-                message = "Image not found";
-            }
-        sftp.end();
-
-        res.json({
-            status: status,
-            message: message,
-            image: imageBase64,
-            time: getCurrentTimeInTaipei()
-        });
+        // 獲取圖片
+        const buffer = await sftp.get(finalPath);
+        if (buffer) {
+            imageBase64 = buffer.toString("base64");
+        } else {
+            status = "error";
+            message = "Image not found";
+        }
     } catch (error) {
         console.error('Error retrieving image:', error);
         res.status(500).json({
@@ -552,7 +561,17 @@ router.get('/image', async (req, res) => {
             image: "",
             time: getCurrentTimeInTaipei()
         });
+        return; // 確保不再執行後續代碼
+    } finally {
+        sftp.end(); // 確保連接結束
     }
+
+    res.json({
+        status: status,
+        message: message,
+        image: imageBase64,
+        time: getCurrentTimeInTaipei()
+    });
 });
 
 
