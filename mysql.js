@@ -54,6 +54,12 @@ async function queryFunc(connection, sql, values = []) {
         const [results] = await connection.execute(sql, values);
         return results;
     } catch (error) {
+        if (error.message.includes("Can't add new command when connection is in closed state")) {
+            // 處理特定錯誤
+            console.error('連接已關閉，嘗試重新獲取連接');
+            connection.destroy(); // 銷毀當前連接
+            // 可以在這裡實施重試邏輯
+        }
         console.error('查詢執行失敗:', error);
         throw error;
     } finally {
