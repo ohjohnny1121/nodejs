@@ -140,11 +140,10 @@ router.post('/login', async (req, res) => {
         });
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            
+            await connection.release();
+            await connection.destroy();
+            
         }
     }
 });
@@ -163,11 +162,10 @@ router.get('/getwhitelist', async (req, res) => {
         res.status(500).json({status: 'error', message: '獲取失敗', time:getCurrentTimeInTaipei()});
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            
+            await connection.release();
+            await connection.destroy();
+            
         }
     }
 });
@@ -213,11 +211,10 @@ router.post('/record', verifyToken, async (req, res) => {
         res.status(500).json({status: 'error', message: '記錄創建失敗', time});
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            
+            await connection.release();
+            await connection.destroy();
+            
         }
     }
 });
@@ -241,11 +238,10 @@ router.get('/record/:st', verifyToken, async (req, res) => {
         res.status(500).json({status: 'error', message: '記錄查詢失敗', time});
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            
+            await connection.release();
+            await connection.destroy();
+            
         }
     }
 });
@@ -320,11 +316,10 @@ router.post('/revisewhitelist', async (req, res) => {
         });
     } finally {
         if (connection) {
-            try {
-                await connection.release();
-            } catch (err) {
-                console.error('釋放連接失敗:', err);
-            }
+            
+            await connection.release();
+            await connection.destroy();
+            
         }
     }
 });

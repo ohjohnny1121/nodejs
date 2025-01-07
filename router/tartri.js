@@ -62,6 +62,7 @@ router.get('/aoi-spec', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
+            await connection.destroy();
         }
     }
 });
@@ -92,6 +93,7 @@ router.post('/aoi-spec', async (req, res) => {
     }finally{
         if (connection) {
             await connection.release();
+            await connection.destroy();
         }
     }
 });
@@ -119,6 +121,7 @@ router.delete('/aoi-spec', async (req, res) => {
     } finally {
         if (connection) {
             await connection.release();
+            await connection.destroy();
         }
     }
 });
