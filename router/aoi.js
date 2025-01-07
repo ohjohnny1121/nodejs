@@ -426,7 +426,6 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         a.lot_num,
                         a.layer,
                         a.lot_type,
-                        a.triger,
                         a.bef_yield,
                         a.yield,
                         DATE_FORMAT(a.time, '%Y-%m-%d %H:%i:%s') as time,
