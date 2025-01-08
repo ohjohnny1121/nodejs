@@ -435,7 +435,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         a.s_top_3,
                         a.s_top3,
                         a.remark,
-                        a.mp_lt_x*a.mp_lt_y upp,
+                        upp,
                         s.triger,
                         s.target
                         FROM aoi_yield_defect a
@@ -498,7 +498,7 @@ router.get('/image', async (req, res) => {
                     if (attempts >= maxAttempts) {
                         throw new Error('無法連接到 FTP 伺服器');
                     }
-                    await new Promise(res => setTimeout(res, 1000)); // 等待1秒後重試
+                    await new Promise(res => setTimeout(res, 500)); // 等待0.5秒後重試
                 }
             }
         };
