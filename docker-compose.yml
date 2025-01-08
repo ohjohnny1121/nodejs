@@ -10,13 +10,14 @@ services:
       - --wait-timeout=28800        # 增加到 8 小時
       - --interactive-timeout=28800  # 增加到 8 小時
       - --connect-timeout=20        # 添加連接超時設置
+      - --net_read_timeout=90        # 添加讀取超時
+      - --net_write_timeout=90       # 添加寫入超時
+      - --max_allowed_packet=128M    # 增加封包大小
     environment:
       MYSQL_ROOT_PASSWORD: pwd123
       MYSQL_USER: user
       MYSQL_PASSWORD: pwd123
       MYSQL_MAX_CONNECTIONS: 1000
-      MYSQL_WAIT_TIMEOUT: 10
-      MYSQL_INTERACTIVE_TIMEOUT: 10
       MYSQL_THREAD_CACHE_SIZE: 128
 
 

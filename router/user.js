@@ -54,7 +54,7 @@ router.post('/login', async (req, res) => {
     //給我一個現在時間的函式
     const time=getCurrentTimeInTaipei()
     console.log('時間戳',time);
-    let connection;
+    let connection;     
     try {
         // 建立 SOAP 客戶端
         const client = await new Promise((resolve, reject) => {
@@ -105,9 +105,9 @@ router.post('/login', async (req, res) => {
         // 生成 JWT token
         const { id, name, DeptName,email,d1name } = result.Myumt_AuthResult;
         // 獲取白名單
-        connection = await mysqlConnection(getDbConfig('user'));
+        const pool = await mysqlConnection(getDbConfig('user'));
         const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false' AND uid = '${id}'`;
-        const whitelist = await queryFunc(connection, sqlStr);
+        const whitelist = await queryFunc(pool, sqlStr);
         const authority = whitelist.map(item => item.authority);
         authority.push(d1name);
         //這裡要加設定的權限
@@ -138,34 +138,21 @@ router.post('/login', async (req, res) => {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
             time, 
         });
-    } finally {
-        if (connection) {
-            
-            await connection.release();
-            
-        }
-    }
+    } 
 });
 
 // 獲取白名單
 router.get('/getwhitelist', async (req, res) => {
     const time = new Date().getTime();
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('user'));
+        const pool = await mysqlConnection(getDbConfig('user'));
         const sqlStr = `SELECT * FROM Whitelist WHERE isdelete = 'false'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         res.json({status: 'success', message: '成功', data: result, time:getCurrentTimeInTaipei()});
     } catch (error) {
         console.error('獲取白名單失敗:', error);
         res.status(500).json({status: 'error', message: '獲取失敗', time:getCurrentTimeInTaipei()});
-    } finally {
-        if (connection) {
-            
-            await connection.release();
-            
-        }
-    }
+    } 
 });
 
 // Token 驗證中間件
@@ -194,52 +181,38 @@ router.get('/verify', verifyToken, (req, res) => {
 // 記錄路由
 router.post('/record', verifyToken, async (req, res) => {
     const time = getCurrentTimeInTaipei();
-    let connection;
     try {
         const { ID, Name, DeptName, Time, Path } = req.body;
-        connection = await mysqlConnection(getDbConfig('user'));
+        const pool = await mysqlConnection(getDbConfig('user'));
         
         const sqlStr = `INSERT INTO user_record(ID, Name, DeptName, Time, Path) 
                        VALUES (?, ?, ?, ?, ?)`;
-        const result = await queryFunc(connection, sqlStr, [ID, Name, DeptName, Time, Path]);
+        const result = await queryFunc(pool, sqlStr, [ID, Name, DeptName, Time, Path]);
         
         res.json({status: 'success', message: '成功', data: result, time});
     } catch (error) {
         console.error('記錄創建失敗:', error);
         res.status(500).json({status: 'error', message: '記錄創建失敗', time});
-    } finally {
-        if (connection) {
-            
-            await connection.release();
-            
-        }
-    }
+    } 
 });
 
 // 獲取記錄數量
 router.get('/record/:st', verifyToken, async (req, res) => {
     const time = getCurrentTimeInTaipei();
-    let connection;
     try {
         const { st } = req.params;
-        connection = await mysqlConnection(getDbConfig('user'));
+        const pool = await mysqlConnection(getDbConfig('user'));
         const transSt = timestampToYMDHIS(new Date(Number(st)));
         
         const sqlStr = `SELECT Count(*) as Count FROM user_record 
                        WHERE Path = '/login' AND Time >= ?`;
-        const result = await queryFunc(connection, sqlStr, [transSt]);
+        const result = await queryFunc(pool, sqlStr, [transSt]);
         
         res.json({status: 'success', message: '成功', data: result, time});
     } catch (error) {
         console.error('記錄查詢失敗:', error);
         res.status(500).json({status: 'error', message: '記錄查詢失敗', time});
-    } finally {
-        if (connection) {
-            
-            await connection.release();
-            
-        }
-    }
+    } 
 });
 
 
@@ -250,9 +223,7 @@ router.post('/revisewhitelist', async (req, res) => {
     const date = new Date(time);
     const dateStr = date.toISOString().slice(0, 19).replace('T', ' ');
     console.log(dateStr);
-    let connection;
-
-    
+        
     try {
         const { uid, authority, creator } = req.body;
         console.log(uid, authority, creator);
@@ -265,29 +236,29 @@ router.post('/revisewhitelist', async (req, res) => {
         }
 
         // 獲取連接
-        connection = await mysqlConnection(getDbConfig('user'));
+        const pool = await mysqlConnection(getDbConfig('user'));
         
         try {
-            await connection.beginTransaction();
+            await pool.beginTransaction();
             // 先將現有權限標記為刪除
             const sqlStrrevise = `UPDATE Whitelist SET isdelete = 'true' WHERE uid = '${uid}'`;
             // console.log(sqlStrrevise);
-            await queryFunc(connection, sqlStrrevise);
+            await queryFunc(pool, sqlStrrevise);
             
             // 插入新的權限
             for (const auth of authority) {
                 //可以抓出id這個資料表的資料數量
                 const sqlStrid = `SELECT COUNT(*) as Count FROM Whitelist`;
-                const resultid = await queryFunc(connection, sqlStrid);
+                const resultid = await queryFunc(pool, sqlStrid);
                 const id = resultid[0].Count + 1;
                 const sqlStrinsert = `
                     INSERT INTO Whitelist (id,uid, authority, creator, isdelete,time) 
                     VALUES ('${id}','${uid}', '${auth}', '${creator}', 'false','${dateStr}')`;
                     console.log(sqlStrinsert);
-                await queryFunc(connection, sqlStrinsert);
+                await queryFunc(pool, sqlStrinsert);
             }
             
-            await connection.commit();
+            await pool.commit();
             
             res.status(200).json({
                 status: 'success',
@@ -297,8 +268,8 @@ router.post('/revisewhitelist', async (req, res) => {
             });
             
         } catch (error) {
-            if (connection) {
-                await connection.rollback();
+            if (pool) {
+                // await pool.rollback();
             }
             throw error;
         }
@@ -310,13 +281,7 @@ router.post('/revisewhitelist', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time
         });
-    } finally {
-        if (connection) {
-            
-            await connection.release();
-            
-        }
-    }
+    } 
 });
 
 module.exports = router;

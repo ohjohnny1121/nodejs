@@ -38,14 +38,12 @@ async function createPool(config) {
 async function mysqlConnection(config) {
     try {
         const pool = await createPool(config);
-        const connection = await pool.getConnection();
         
         // 獲取連接池狀態
-        const poolStatus = await connection.query('SHOW STATUS WHERE `variable_name` = "Threads_connected"');
-        // console.log('連接池狀態:', poolStatus);
+        const poolStatus = await pool.query('SHOW STATUS WHERE `variable_name` = "Threads_connected"');
         console.log('實際活動連接數:', poolStatus[0][0].Value);
         
-        return connection;
+        return pool;
     } catch (error) {
         console.error('建立連接失敗:', error);
         throw error;
@@ -59,41 +57,45 @@ async function mysqlConnection(config) {
  * @param {Array} [values] - 查詢參數
  * @returns {Promise<any>} 查詢結果
  */
-async function queryFunc(connection, sql, values = []) {
+async function queryFunc(pool, sql, values = []) {
     try {
-        const [results] = await connection.execute(sql, values);
+        const [results] = await pool.execute(sql, values);
         return results;
     } catch (error) {
-        if (error.message.includes("Can't add new command when connection is in closed state")) {
-            // 處理特定錯誤
-            console.error('連接已關閉，嘗試重新獲取連接');
-            connection.destroy(); // 銷毀當前連接
-            // 可以在這裡實施重試邏輯
-        }
         console.error('查詢執行失敗:', error);
         throw error;
-    } finally {
-        if (connection) {
-            connection.release();
-        }
     }
 }
 
 /**
  * 定期執行心跳查詢以保持連接活躍
  */
+// function startHeartbeat() {
+//     setInterval(async () => {
+//         for (const pool of pools.values()) {
+//             try {
+//                 const connection = await pool.getConnection();
+//                 await connection.query('SELECT 1');
+//                 connection.release();
+//             } catch (error) {
+//                 console.error('心跳查詢失敗:', error);
+//             }
+//         }
+//     }, 30000); // 每30秒執行一次
+// }
 function startHeartbeat() {
     setInterval(async () => {
-        for (const pool of pools.values()) {
+        for (const [key, pool] of pools.entries()) {
             try {
-                const connection = await pool.getConnection();
-                await connection.query('SELECT 1');
-                connection.release();
+                await pool.query('SELECT 1');
+                // console.log(`連接池 ${key} 心跳正常`);
             } catch (error) {
-                console.error('心跳查詢失敗:', error);
+                console.error(`連接池 ${key} 心跳查詢失敗:`, error);
+                // 如果心跳失敗，刪除問題連接池
+                pools.delete(key);
             }
         }
-    }, 30000); // 每30秒執行一次
+    }, 30000);
 }
 
 /**

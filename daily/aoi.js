@@ -37,13 +37,13 @@ router.get("/sndailyadd", async (req, res) => {
     try {
       
       const endTime = new Date();
-      endTime.setDate(endTime.getDate()+1 );
+      endTime.setDate(endTime.getDate()-40 );
       endTime.setHours(8, 0, 0, 0);
       const t8sqlTime = 
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 40);
+      startTime.setDate(startTime.getDate() - 80);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -144,7 +144,8 @@ const sqlSnReadOut = `
         X.UnitDefect_AosBef,
         H.MpLtX,
         H.MpLtY,
-        H.MpLtX*H.MpLtY*2 Qnty_S,
+        --H.MpLtX*H.MpLtY*2 Qnty_S,
+        J.Qnty_S,
         CONVERT(varchar,C.ChangeTime, 120)ChangeTime
         FROM SN_VRS_test_result_new(nolock)X 
         INNER JOIN SN_VRS_step_rec_new(nolock)V
@@ -192,6 +193,7 @@ const sqlSnReadOut = `
       const sfData = sfResult.recordset;
       const layoutData = layoutResult.recordset;
       const summaryData = [];
+      // res.json(rawData);
       // 處理數據
       rawData.forEach((r) => {
         const layerAry = r.LayerName.split("L");
@@ -234,19 +236,19 @@ const sqlSnReadOut = `
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
-          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}`
+          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}~${r.Qnty_S}`
         )
       )];
   
       // 處理每個批次的資料
       lot_layer_qty.forEach((i) => {
-        const [PartNo, LotNum, LayerName, LayerType, LotType, qty, ChangeTime, ProdClass] = i.split("~");
+        const [PartNo, LotNum, LayerName, LayerType, LotType, upp, ChangeTime, ProdClass,Qnty_S] = i.split("~");
         const Obj = {};
   
         const filterData = rawData.filter(r => 
           r.LotNum === LotNum && 
           r.LayerName === LayerName 
-          // r.Qnty_S === Number(qty)
+            // r.Qnty_S === Number(upp)
         );
 
   
@@ -304,7 +306,7 @@ const sqlSnReadOut = `
             const [defect] = t.defect.split("-");
             Obj[`${prefix}_TOP_${idx + 1}`] = defect || "";
             Obj[`${prefix}_TOP${idx + 1}`] = t.count === 0 ? "" : 
-              `${((t.count / Number(qty)) * 100).toFixed(2)}%`;
+              `${((t.count / (Number(upp)*Number(Qnty_S)))).toFixed(4)}`;
           });
         };
   
@@ -330,8 +332,8 @@ const sqlSnReadOut = `
   
         // 設置物件屬性
         Object.assign(Obj, {
-          bef_Yield: (1 - uniqueAosBefCount / Number(qty)).toFixed(4),
-          Yield: (1 - uniqueAosAftCount / Number(qty)).toFixed(4),
+          bef_Yield: (1 - uniqueAosBefCount / (Number(upp)*Number(Qnty_S))).toFixed(4),
+          Yield: (1 - uniqueAosAftCount / (Number(upp)*Number(Qnty_S))).toFixed(4),
           Remark: "", // 預設為空
           PartNo,
           LotType,
@@ -342,7 +344,7 @@ const sqlSnReadOut = `
           ProdClass,
           Factory: snReadOutResult.recordset.find(i => i.lotnum.trim() === LotNum).Factory,
           // triger,
-          upp:qty,
+          upp:upp,
           // MpLtX: mpLtX,
           // MpLtY: mpLtY,
         });
