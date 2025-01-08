@@ -49,11 +49,10 @@ router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
             time: getCurrentTimeInTaipei()
         });
     }
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `SELECT a.*,s.triger,s.target FROM aoi_yield_defect a left join aoi_spec s on upper(a.part_no) = upper(s.part_no) WHERE factory = '${factory}' AND lot_num = '${lot_num}' AND layer = '${layer}' and s.isdelete = false`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         if (result.length === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -74,11 +73,7 @@ router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 
 
@@ -92,11 +87,10 @@ router.get('/lot-list/:uid', async (req, res) => {
             time: getCurrentTimeInTaipei()
         });
     }
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `SELECT * FROM user_lot_list WHERE uid = '${uid}'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         
         res.status(200).json({
             status: 'success',
@@ -111,17 +105,12 @@ router.get('/lot-list/:uid', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 
 router.post('/lot-list', async (req, res) => {
     const { uid, lot_list} = req.body;
     console.log(uid, lot_list);
-    let connection;
     if (typeof uid === 'undefined' || typeof lot_list === 'undefined') {
         return res.status(400).json({
             status: 'error',
@@ -130,12 +119,12 @@ router.post('/lot-list', async (req, res) => {
         });
     }
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlDel = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
         const sqlStr = `INSERT INTO user_lot_list (uid, factory,part_no, lot_num,layer) VALUES ${lot_list.map(item => `('${uid}', '${item.factory}', '${item.part_no}', '${item.lot_num}','${item.layer}')`).join(',')}`;
         console.log(sqlStr);
-        const resultDel = await queryFunc(connection, sqlDel);
-        const result = await queryFunc(connection, sqlStr);
+        const resultDel = await queryFunc(pool, sqlDel);
+        const result = await queryFunc(pool, sqlStr);
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -149,11 +138,7 @@ router.post('/lot-list', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 
 router.delete('/lot-list', async (req, res) => {
@@ -164,13 +149,12 @@ router.delete('/lot-list', async (req, res) => {
             status: 'error',
             message: 'uid, factory, part_no, lot_num, layer 是必填的',
             time: getCurrentTimeInTaipei()
-        });
+        });     
     }
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}' AND factory = '${factory}' AND part_no = '${part_no}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -192,11 +176,7 @@ router.delete('/lot-list', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 router.put('/lot-list', async (req, res) => {
     const { uid, factory, part_no, lot_num, layer } = req.body;
@@ -208,11 +188,10 @@ router.put('/lot-list', async (req, res) => {
             time: getCurrentTimeInTaipei()
         });
     }
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `UPDATE user_lot_list SET factory = '${factory}',part_no = '${part_no}', lot_num = '${lot_num}', layer = '${layer}' WHERE uid = '${uid}'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 status: 'error',
@@ -233,11 +212,7 @@ router.put('/lot-list', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 
 router.delete('/lot-list-all', async (req, res) => {
@@ -252,11 +227,10 @@ router.delete('/lot-list-all', async (req, res) => {
     }
 
 
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `DELETE FROM user_lot_list WHERE uid = '${uid}'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         res.status(200).json({
             status: 'success',
             message: '成功',
@@ -270,11 +244,7 @@ router.delete('/lot-list-all', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 // 更新SN AOI 備註
 router.post('/aoi-revise-remark', async (req, res) => {
@@ -289,11 +259,10 @@ router.post('/aoi-revise-remark', async (req, res) => {
         });
     }
 
-    let connection;
     try {
-        connection = await mysqlConnection(getDbConfig('aoi'));
+        const pool = await mysqlConnection(getDbConfig('aoi'));
         const sqlStr = `UPDATE aoi_yield_defect SET remark = '${remark}' WHERE lot_num = '${lot_num}'`;
-        const result = await queryFunc(connection, sqlStr);
+        const result = await queryFunc(pool, sqlStr);
         
         // 檢查更新結果
         if (result.affectedRows === 0) {
@@ -316,11 +285,7 @@ router.post('/aoi-revise-remark', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
-    }
+    } 
 });
 
 // 獲取SN AOI 歷史資料
@@ -388,7 +353,6 @@ router.get('/history/:lot_num', async (req, res) => {
 
 // 獲取AOI 每日資料
 router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
-    let connection;
     try {
         const { startDate, endDate, factory } = req.params;
 
@@ -403,13 +367,8 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         const endTimestamp = Number(endDate);
         console.log(startTimestamp, convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
         
-
-        // 獲取連接
-        connection = await mysqlConnection(getDbConfig('aoi'));
-
-        if (!connection) {
-            throw new Error('無法獲取數據庫連接');
-        }
+        // 直接獲取 pool
+        const pool = await mysqlConnection(getDbConfig('aoi'));
 
         // 使用參數化查詢
         const sqlStr = `SELECT 
@@ -445,7 +404,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         AND a.factory = ?
                         and s.isdelete = false`;
 
-        const result = await queryFunc(connection, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
+        const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
         res.status(200).json({
             status: 'success',
@@ -461,10 +420,6 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        if (connection) {
-            await connection.release();
-        }
     }
 });
 
@@ -745,9 +700,7 @@ router.get('/layout/:lot_num/:layer', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        
-    }
+    } 
 });
 
 
@@ -800,8 +753,6 @@ router.get('/ncnrecord/:lot', async (req, res) => {
             message: error.message || '記錄創建失敗',
             time: getCurrentTimeInTaipei()
         });
-    } finally {
-        
-    }       
+        }     
 });
 module.exports = router;

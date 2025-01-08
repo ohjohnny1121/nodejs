@@ -38,7 +38,7 @@ cron.schedule('01 00 08 * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('20 13 14 * * *', async () => {
+cron.schedule('59 46 15 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
