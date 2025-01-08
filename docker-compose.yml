@@ -7,8 +7,9 @@ services:
       - --default-authentication-plugin=mysql_native_password 
       - --init-file=/docker-entrypoint-initdb.d/init.sql
       - --max-connections=500
-      - --wait-timeout=60
-      - --interactive-timeout=60
+      - --wait-timeout=28800        # 增加到 8 小時
+      - --interactive-timeout=28800  # 增加到 8 小時
+      - --connect-timeout=20        # 添加連接超時設置
     environment:
       MYSQL_ROOT_PASSWORD: pwd123
       MYSQL_USER: user
