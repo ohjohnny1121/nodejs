@@ -142,12 +142,18 @@ const sqlSnReadOut = `
         X.Repair,
         X.UnitDefect,
         X.UnitDefect_AosBef,
+        H.MpLtX,
+        H.MpLtY,
         H.MpLtX*H.MpLtY*2 Qnty_S,
         CONVERT(varchar,C.ChangeTime, 120)ChangeTime
         FROM SN_VRS_test_result_new(nolock)X 
         INNER JOIN SN_VRS_step_rec_new(nolock)V
         ON X.LotNum=V.LotNum AND X.Layer=V.Layer
-        INNER JOIN SN_Layout_Center_Head(nolock)H
+        INNER JOIN (
+        select*from SN_Layout_Center_Head(nolock)
+        	union
+		    select*from YM_Layout_Center_Head(nolock)
+        )H
         ON LEFT(X.CenterPart,7) = LEFT(H.JobName,7)
         INNER JOIN 
         (
@@ -166,20 +172,20 @@ const sqlSnReadOut = `
         ON X.LotNum =C.lotnum AND X.layer =C.layer
         WHERE X.LotNum IN (${sqlStringLotNum}) 
         AND X.Classify !='0'`;
-        // console.log(snvrs);
+        console.log(snvrs);
       // const snvrsResult = await poolSNDc.query(snvrs);
       // res.json(snvrsResult.recordset);
       const sqlTrigger = `SELECT * FROM aoi_spec`;
       const sqlSf = `SELECT DISTINCT LEFT(PartNum,7) PN ,ULMark94V,NumOfLayer,ProdClass FROM
         prodbasic WHERE LEFT(PartNum,4)<>'UMGL' AND ULMark94V <>''`;
-      const sqlLayout = `SELECT DISTINCT left(JobName,7) JobName ,MpLtX,MpLtY from SN_Layout_Center_Head(nolock)`;
+      const sqlLayout = `SELECT DISTINCT left(PartNum,7) JobName ,PnlToUnit upp from prodbasic`;
       aoiconn = await mysqlConnection(getDbConfig('aoi'));
       // 並行執行多個查詢
       const [snvrsResult,triggerResult,sfResult,layoutResult] = await Promise.all([
         poolSNDc.query(snvrs),
         queryFunc(aoiconn,sqlTrigger),
         poolSNAcme.query(sqlSf),
-        poolSNDc.query(sqlLayout)
+        poolSNAcme.query(sqlLayout)
       ]); 
       const rawData = snvrsResult.recordset;
       const triggerData = triggerResult;
@@ -196,12 +202,10 @@ const sqlSnReadOut = `
         const layoutIdx = layoutData.findIndex(l => r.PartNo.toUpperCase() === l.JobName.toUpperCase());
 
         if(layoutIdx !== -1){
-          const { MpLtX, MpLtY } = layoutData[layoutIdx];
-          r.MpLtX = MpLtX;
-          r.MpLtY = MpLtY;
+          const { upp } = layoutData[layoutIdx];
+          r.upp = upp;
         }else{
-          r.MpLtX = "";
-          r.MpLtY = "";
+          r.upp = "";
         }
 
 
@@ -226,11 +230,11 @@ const sqlSnReadOut = `
         // }
         
       });
-     res.json(rawData);
+    //  res.json(rawData);
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
-          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.Qnty_S}~${r.ChangeTime}~${r.ProdClass}`
+          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}`
         )
       )];
   
@@ -241,9 +245,10 @@ const sqlSnReadOut = `
   
         const filterData = rawData.filter(r => 
           r.LotNum === LotNum && 
-          r.LayerName === LayerName && 
-          r.Qnty_S === Number(qty)
+          r.LayerName === LayerName 
+          // r.Qnty_S === Number(qty)
         );
+
   
         // 從 filterData 中獲取第一筆資料的 MpLtX 和 MpLtY
         const firstRecord = filterData[0] || {};
@@ -337,8 +342,9 @@ const sqlSnReadOut = `
           ProdClass,
           Factory: snReadOutResult.recordset.find(i => i.lotnum.trim() === LotNum).Factory,
           // triger,
-          MpLtX: mpLtX,
-          MpLtY: mpLtY,
+          upp:qty,
+          // MpLtX: mpLtX,
+          // MpLtY: mpLtY,
         });
         
         summaryData.push(Obj);
@@ -369,8 +375,7 @@ const sqlSnReadOut = `
             'time',
             'prod_class',
             // 'triger',
-            'mp_lt_x',
-            'mp_lt_y',
+            'upp',
             'lot_type',
             'factory'
           ]

@@ -21,8 +21,8 @@ async function createPool(config) {
             idleTimeout: 60000, // 60秒
             enableKeepAlive: true, // 啟用連接保活
             keepAliveInitialDelay: 10000, // 初始延遲時間
-            cleanupInterval: 60000,  // 定期清理無效連接
-            keepAliveTimeout: 60000, // 連接保活超時時間
+            // cleanupInterval: 60000,  // 定期清理無效連接
+            // keepAliveTimeout: 60000, // 連接保活超時時間
 
         });
         pools.set(key, pool);
@@ -42,7 +42,7 @@ async function mysqlConnection(config) {
         
         // 獲取連接池狀態
         const poolStatus = await connection.query('SHOW STATUS WHERE `variable_name` = "Threads_connected"');
-        console.log('連接池狀態:', poolStatus);
+        // console.log('連接池狀態:', poolStatus);
         console.log('實際活動連接數:', poolStatus[0][0].Value);
         
         return connection;
