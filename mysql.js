@@ -18,7 +18,12 @@ async function createPool(config) {
             connectionLimit: 200,
             queueLimit: 0,
             // 設置空閒超時
-            idleTimeout: 60000 // 60秒
+            idleTimeout: 60000, // 60秒
+            enableKeepAlive: true, // 啟用連接保活
+            keepAliveInitialDelay: 10000, // 初始延遲時間
+            cleanupInterval: 60000,  // 定期清理無效連接
+            keepAliveTimeout: 60000, // 連接保活超時時間
+
         });
         pools.set(key, pool);
     }
@@ -34,7 +39,12 @@ async function mysqlConnection(config) {
     try {
         const pool = await createPool(config);
         const connection = await pool.getConnection();
-        console.log('活動連接數:', pools.size);
+        
+        // 獲取連接池狀態
+        const poolStatus = await connection.query('SHOW STATUS WHERE `variable_name` = "Threads_connected"');
+        console.log('連接池狀態:', poolStatus);
+        console.log('實際活動連接數:', poolStatus[0][0].Value);
+        
         return connection;
     } catch (error) {
         console.error('建立連接失敗:', error);
