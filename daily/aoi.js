@@ -37,13 +37,13 @@ router.get("/sndailyadd", async (req, res) => {
     try {
       
       const endTime = new Date();
-      endTime.setDate(endTime.getDate()-40 );
+      endTime.setDate(endTime.getDate()+1 );
       endTime.setHours(8, 0, 0, 0);
       const t8sqlTime = 
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 80);
+      startTime.setDate(startTime.getDate() - 40);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -270,7 +270,7 @@ const sqlSnReadOut = `
             aosaftUnique.set(key, f);
           }
         });
-  
+        
         const aosbefData = Array.from(aosbefUnique.values());
         const aosaftData = Array.from(aosaftUnique.values());
   
@@ -306,7 +306,7 @@ const sqlSnReadOut = `
             const [defect] = t.defect.split("-");
             Obj[`${prefix}_TOP_${idx + 1}`] = defect || "";
             Obj[`${prefix}_TOP${idx + 1}`] = t.count === 0 ? "" : 
-              `${((t.count / (Number(upp)*Number(Qnty_S)))).toFixed(4)}`;
+              `${((t.count / (Number(Qnty_S)))).toFixed(4)}`;
           });
         };
   
@@ -315,7 +315,9 @@ const sqlSnReadOut = `
   
         const uniqueAosBefCount = new Set(aosbefData.map(d => d.BoardNo + d.VrsCode)).size;
         const uniqueAosAftCount = new Set(aosaftData.map(d => d.BoardNo + d.VrsCode)).size;
-  
+        if(LotNum.trim() === '24BDF007-01-00'){
+          console.log(LotNum,aosbefData,uniqueAosBefCount,uniqueAosAftCount);
+        }
         // 檢查 Core Layer
         // let checkCoreLayer = "";
         // if (LayerType === "CORE") {
@@ -332,8 +334,8 @@ const sqlSnReadOut = `
   
         // 設置物件屬性
         Object.assign(Obj, {
-          bef_Yield: (1 - uniqueAosBefCount / (Number(upp)*Number(Qnty_S))).toFixed(4),
-          Yield: (1 - uniqueAosAftCount / (Number(upp)*Number(Qnty_S))).toFixed(4),
+          bef_Yield: (1 - uniqueAosBefCount / (Number(Qnty_S))).toFixed(4),
+          Yield: (1 - uniqueAosAftCount / (Number(Qnty_S))).toFixed(4),
           Remark: "", // 預設為空
           PartNo,
           LotType,
@@ -387,10 +389,6 @@ const sqlSnReadOut = `
     } catch (err) {
       console.log(err);
       res.status(500).json({ error: err.message });
-    }finally{
-      if (aoiconn) {
-        await aoiconn.destroy();
-      }
     }
   });
 
