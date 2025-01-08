@@ -46,20 +46,15 @@ const retry = async (operation, config) => {
 
 // 改進的資料庫操作函數
 const executeQuery = async (db, sql, values = []) => {
-    const connection = await mysqlConnection(configFunc(db));
+
+    const pool = await mysqlConnection(configFunc(db));
     try {
-        const result = await queryFunc(connection, sql, values);
+        const result = await queryFunc(pool, sql, values);
         return result;
     } catch (error) {
         throw new DatabaseError(`執行查詢失敗: ${sql}`, error);
     } finally {
-        if (connection) {
-            try {
-                await connection.destroy();
-            } catch (error) {
-                console.error('關閉連接失敗:', error);
-            }
-        }
+        
     }
 };
 
