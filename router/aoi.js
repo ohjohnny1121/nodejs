@@ -769,14 +769,14 @@ router.get('/ncnrecord/:lot', async (req, res) => {
                 lot_no,
                 ncn_no,
                 open_datetime,
-                SUBSTRING(Layer,CHARINDEX('/',Layer)+2,LEN(Layer))Layer,
-                Case when SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode))='' then Failure_mode else SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode)) end Failure_mode,
-                Problem_des,
-                Prd_qty,
-                Defect_qty,
-                Prd_unit,
-                Defect_unit,
-                ncn_level 
+                SUBSTRING(Layer,CHARINDEX('/',Layer)+2,LEN(Layer)) as layer,
+                Case when SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode))='' then Failure_mode else SUBSTRING(Failure_mode,0,CHARINDEX('/',Failure_mode)) end as failure_mode,
+                Problem_des as problem_des,
+                Prd_qty as prd_qty ,
+                Defect_qty as defect_qty,
+                Prd_unit as prd_unit,
+                Defect_unit as defect_unit,
+                ncn_level as ncn_level 
             FROM 
                 MRB_Detail(nolock)
             WHERE 
