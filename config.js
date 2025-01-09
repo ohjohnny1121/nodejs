@@ -3,7 +3,7 @@ const express = require('express');
 const configFunc = (db) => {
     return {
         host: '10.22.94.69',
-        user: 'user_marvin',
+        user: 'root',
         password: 'pwd123',
         database: db,
         

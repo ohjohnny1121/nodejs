@@ -239,7 +239,7 @@ router.post('/revisewhitelist', async (req, res) => {
         const pool = await mysqlConnection(getDbConfig('user'));
         
         try {
-            await pool.beginTransaction();
+            
             // 先將現有權限標記為刪除
             const sqlStrrevise = `UPDATE Whitelist SET isdelete = 'true' WHERE uid = '${uid}'`;
             // console.log(sqlStrrevise);
@@ -257,8 +257,6 @@ router.post('/revisewhitelist', async (req, res) => {
                     console.log(sqlStrinsert);
                 await queryFunc(pool, sqlStrinsert);
             }
-            
-            await pool.commit();
             
             res.status(200).json({
                 status: 'success',
