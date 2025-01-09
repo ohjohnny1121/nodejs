@@ -43,7 +43,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 40);
+      startTime.setDate(startTime.getDate() - 50);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -391,7 +391,69 @@ const sqlSnReadOut = `
       res.status(500).json({ error: err.message });
     }
   });
+router.get("/trend", async (req, res) => {
+  // const { startDate, endDate } = req.query;
+  try{
+  const startDateObj = new Date();
+  const endDateObj = new Date();
+  startDateObj.setDate(startDateObj.getDate() - 30);
+  const startDateStr = startDateObj.toISOString().split('T')[0];
+  const endDateStr = endDateObj.toISOString().split('T')[0];
+  const sql = `WITH ProcessHistory AS (
+              SELECT DISTINCT 
+                lotnum,
+                layer,
+                Qnty_S,
+                ChangeTime 
+              FROM v_pdl_ckhistory(nolock)
+              WHERE proccode = 'AOI04'
+              AND BefStatus = 'MoveIn' 
+              AND AftStatus = 'CheckIn'
+              AND ChangeTime BETWEEN '${startDateStr}' AND '${endDateStr}'
+)
 
+            -- 2. 主查詢
+            SELECT 
+                a.CenterPart part_no,
+                a.LotNum lot_num,
+                a.Layer layer,
+                a.VrsCode vrs_code,
+                --COUNT(*) as count,
+                CAST(COUNT(*) AS FLOAT) / J.Qnty_S as defect_rate
+                --J.Qnty_S as qnty_s
+            FROM 
+                SN_VRS_Test_Result_new a
+                INNER JOIN ProcessHistory J 
+                ON a.LotNum = J.lotnum 
+                AND a.layer = J.layer
+            WHERE 
+                a.classify <> '0' 
+                AND a.UnitDefect_AosBef = '1'
+            GROUP BY 
+                a.CenterPart,
+                a.LotNum,
+                a.Layer,
+                a.VrsCode,
+                J.Qnty_S`;
+
+  const result = await poolSNDc.query(sql);
+
+  res.json({
+    daily: {
+      data: result.recordset,
+      db: "aoi",
+      table: "aoi_lot_defect_rate",
+      match: [
+        'defect_rate'
+      ]
+    },
+  });
+  
+  }catch(err){
+    console.log(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 router.get("/example", async (req, res) => {
     try {
         // 直接指定要使用的數據庫名稱

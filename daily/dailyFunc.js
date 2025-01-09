@@ -1,7 +1,9 @@
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 const { mysqlConnection, queryFunc } = require('../mysql');
-const { configFunc } = require('../config');
+const getDbConfig = require('../config/database');
+const { get } = require('./aoi');
+// const { configFunc } = require('../config');
 
 // 定義錯誤類別
 class DatabaseError extends Error {
@@ -47,7 +49,7 @@ const retry = async (operation, config) => {
 // 改進的資料庫操作函數
 const executeQuery = async (db, sql, values = []) => {
 
-    const pool = await mysqlConnection(configFunc(db));
+    const pool = await mysqlConnection(getDbConfig(db));
     try {
         const result = await queryFunc(pool, sql, values);
         return result;

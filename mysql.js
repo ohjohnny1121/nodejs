@@ -16,14 +16,7 @@ async function createPool(config) {
             ...config,
             waitForConnections: true,
             connectionLimit: 200,
-            queueLimit: 0,
-            // 設置空閒超時
-            idleTimeout: 60000, // 60秒
-            enableKeepAlive: true, // 啟用連接保活
-            keepAliveInitialDelay: 10000, // 初始延遲時間
-            // cleanupInterval: 60000,  // 定期清理無效連接
-            // keepAliveTimeout: 60000, // 連接保活超時時間
-
+            queueLimit: 0
         });
         pools.set(key, pool);
     }
@@ -38,11 +31,6 @@ async function createPool(config) {
 async function mysqlConnection(config) {
     try {
         const pool = await createPool(config);
-        
-        // 獲取連接池狀態
-        const poolStatus = await pool.query('SHOW STATUS WHERE `variable_name` = "Threads_connected"');
-        console.log('實際活動連接數:', poolStatus[0][0].Value);
-        
         return pool;
     } catch (error) {
         console.error('建立連接失敗:', error);
@@ -83,20 +71,20 @@ async function queryFunc(pool, sql, values = []) {
 //         }
 //     }, 30000); // 每30秒執行一次
 // }
-function startHeartbeat() {
-    setInterval(async () => {
-        for (const [key, pool] of pools.entries()) {
-            try {
-                await pool.query('SELECT 1');
-                // console.log(`連接池 ${key} 心跳正常`);
-            } catch (error) {
-                console.error(`連接池 ${key} 心跳查詢失敗:`, error);
-                // 如果心跳失敗，刪除問題連接池
-                pools.delete(key);
-            }
-        }
-    }, 30000);
-}
+// function startHeartbeat() {
+//     setInterval(async () => {
+//         for (const [key, pool] of pools.entries()) {
+//             try {
+//                 await pool.query('SELECT 1');
+//                 // console.log(`連接池 ${key} 心跳正常`);
+//             } catch (error) {
+//                 console.error(`連接池 ${key} 心跳查詢失敗:`, error);
+//                 // 如果心跳失敗，刪除問題連接池
+//                 pools.delete(key);
+//             }
+//         }
+//     }, 30000);
+// }
 
 /**
  * 在應用程序退出時關閉所有連接池
@@ -113,9 +101,7 @@ process.on('SIGTERM', closePools);
 module.exports = {
     mysqlConnection,
     queryFunc,
-    pools,
-    startHeartbeat
+    pools
 };
-
 // 在應用啟動時調用 startHeartbeat
-startHeartbeat();
+// startHeartbeat();

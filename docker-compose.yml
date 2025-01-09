@@ -15,7 +15,7 @@ services:
       - --max_allowed_packet=128M    # 增加封包大小
     environment:
       MYSQL_ROOT_PASSWORD: pwd123
-      MYSQL_USER: user
+      MYSQL_USER: root
       MYSQL_PASSWORD: pwd123
       MYSQL_MAX_CONNECTIONS: 1000
       MYSQL_THREAD_CACHE_SIZE: 128
@@ -37,7 +37,7 @@ services:
     environment:
       # MySQL 配置
       - MYSQL_HOST=mysql
-      - MYSQL_USER=user
+      - MYSQL_USER=root
       - MYSQL_PASSWORD=pwd123
     extra_hosts:
       # SQL Server 映射
