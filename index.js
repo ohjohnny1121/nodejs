@@ -37,13 +37,24 @@ cron.schedule('01 00 08 * * *', async () => {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
     }
 });
+//每小時執行一次
+cron.schedule('00 00 * * * *', async () => {
+    try {
+        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        
+    } catch (error) {
+        console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
+    }
+});
 
 // 固定時間執行
 cron.schedule('50 56 15 * * *', async () => {
     try {
         console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
-        await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);

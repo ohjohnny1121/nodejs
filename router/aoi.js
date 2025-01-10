@@ -11,6 +11,7 @@ const { timestampToYMDHIS, convertTimestampToFormattedDate, getCurrentTimeInTaip
 const { initializePools, poolObj } = require('../mssql');
 const fs = require('fs');
 const Client = require('ssh2-sftp-client');
+const genericPool = require('generic-pool');
 
 
 const router = express.Router();
@@ -38,6 +39,296 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
+router.get('/factory-list', async (req, res) => {
+    try {
+        const pool = await mysqlConnection(getDbConfig('common'));
+        const sqlStr = `SELECT DISTINCT name FROM factory`;
+        const result = await queryFunc(pool, sqlStr);
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
+
+router.post('/trend_data_batch', async (req, res) => {
+    const { items } = req.body; // 預期格式: [{process, part_no, lot_num, layer, defect_type}, ...]
+    
+    try {
+        const results = [];
+        
+        // 先獲取所有 lot 的 check-in time
+        const lotInfoQueries = items.filter(item => item.process.length === 8)
+            .map(item => `
+                SELECT 
+                    '${item.lot_num}' as lot_num,
+                    CONVERT(VARCHAR(23), p.ChangeTime, 121) as ChangeTime
+                FROM PDL_CKHistory(nolock) p
+                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
+                WHERE 
+                    lotnum = '${item.lot_num}'
+                    AND RTRIM(LayerName) = '${item.layer}'
+                    AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in ('${item.process}')
+                    AND BefStatus='MoveIn' 
+                    AND AftStatus='CheckIn'
+            `);
+        
+        const lotInfoQuery = lotInfoQueries.join(' UNION ALL ');
+        const lotInfoResults = lotInfoQueries.length > 0 ? 
+            await poolSNAcme.query(lotInfoQuery) : 
+            { recordsets: [[]] };
+
+        // 建立 lot_num 到 check-in time 的映射
+        const lotCheckInTimes = {};
+        lotInfoResults.recordsets[0].forEach(row => {
+            lotCheckInTimes[row.lot_num] = row.ChangeTime;
+        });
+
+        // 批次處理主要查詢
+        const mainQueries = items.map(item => `
+            SELECT * FROM (
+                SELECT DISTINCT 
+                    '${item.defect_type}' as defect_type,
+                    LEFT(p.partnum,7) as part_no,
+                    RTRIM(lotnum) as lot_num,
+                    RTRIM(LayerName) as layer_name,
+                    t.ITypeName as lot_type,
+                    CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                    SUBSTRING(ProcName,1,3) as proc_group,
+                    ProcName as proc_name,
+                    MachineName,
+                    SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+                    d.SerialNum,
+                    p.layer,
+                    1 as QueryGroup,
+                    p.ChangeTime as sort_time
+                FROM PDL_CKHistory(nolock) p 
+                    LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                    LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
+                    LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                    LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+                    LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+                WHERE LEFT(p.partnum,7) IN ('${item.part_no}') 
+                    AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${item.process}') 
+                    AND BefStatus='MoveIn' 
+                    AND AftStatus='CheckIn' 
+                    AND LEFT(p.partnum,4)<>'UMGL'
+                    AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTimes[item.lot_num]}', 121)
+                
+                UNION    
+                
+                SELECT DISTINCT 
+                    '${item.defect_type}' as defect_type,
+                    LEFT(p.partnum,7) as part_no,
+                    RTRIM(lotnum) as lot_num,
+                    RTRIM(LayerName) as layer_name,
+                    t.ITypeName as lot_type,
+                    CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                    SUBSTRING(ProcName,1,3) as proc_group,
+                    ProcName as proc_name,
+                    MachineName,
+                    SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+                    d.SerialNum,
+                    p.layer,
+                    2 as QueryGroup,
+                    p.ChangeTime as sort_time
+                FROM PDL_CKHistory(nolock) p 
+                    LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                    LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
+                    LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                    LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+                    LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+                WHERE LEFT(p.partnum,7) IN ('${item.part_no}') 
+                    AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${item.process}') 
+                    AND BefStatus='MoveIn' 
+                    AND AftStatus='CheckIn' 
+                    AND LEFT(p.partnum,4)<>'UMGL'
+                    AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTimes[item.lot_num]}', 121)
+            ) AS combined_results
+        `);
+
+        const mainQuery = mainQueries.join(' UNION ALL ');
+        const result = await poolSNAcme.query(mainQuery);
+        
+        // 批次處理缺陷查詢
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        const lotGroups = {};
+        
+        result.recordset.forEach(record => {
+            if (!lotGroups[record.layer]) {
+                lotGroups[record.layer] = new Set();
+            }
+            lotGroups[record.layer].add(record.lot_num);
+        });
+
+        // 為每個 layer 創建並執行缺陷查詢
+        const defectQueries = Object.entries(lotGroups).map(([layer, lots]) => `
+            SELECT * FROM aoi_lot_defect_rate 
+            WHERE lot_num IN (${Array.from(lots).map(lot => `'${lot}'`).join(',')}) 
+            AND layer = '${layer}'
+            AND vrs_code IN (${items.map(item => `'${item.defect_type}'`).join(',')})
+        `);
+
+        const defectResults = await Promise.all(
+            defectQueries.map(query => queryFunc(pool, query))
+        );
+
+        // 合併缺陷數據到主要結果
+        const defectMap = {};
+        defectResults.flat().forEach(defect => {
+            const key = `${defect.lot_num}_${defect.vrs_code}`;
+            defectMap[key] = defect;
+        });
+
+        result.recordset.forEach(item => {
+            const key = `${item.lot_num}_${item.defect_type}`;
+            const defectItem = defectMap[key];
+            if (defectItem) {
+                item.defect_rate = defectItem.defect_rate;
+                item.vrs_code = defectItem.vrs_code;
+            }
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result.recordset,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
+router.get('/trend_data/:process/:part_no/:lot_num/:layer/:defect_type', async (req, res) => {
+    const { process, part_no, lot_num, layer, defect_type } = req.params;
+    console.log(process, part_no, lot_num, layer, defect_type);
+    try {
+        let resultLotInfo = [];
+        if (process.length = 8) {
+            console.log('SNAcme');
+            const sqlLotInfo = `
+            SELECT CONVERT(VARCHAR(23), p.ChangeTime, 121) as ChangeTime
+                FROM PDL_CKHistory(nolock) p
+                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
+            WHERE 
+                lotnum = '${lot_num}'
+                AND RTRIM(LayerName) = '${layer}'
+                AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in ('${process}')
+                AND BefStatus='MoveIn' 
+                AND AftStatus='CheckIn'`;
+            resultLotInfo = await poolSNAcme.query(sqlLotInfo);
+        }
+
+        const lotCheckInTime = resultLotInfo.recordsets[0][0].ChangeTime;
+        
+        const sqlStr = `
+        SELECT * FROM (
+            SELECT DISTINCT 
+                LEFT(p.partnum,7) as part_no,
+                RTRIM(lotnum) as lot_num,
+                RTRIM(LayerName) as layer_name,
+                t.ITypeName as lot_type,
+                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                SUBSTRING(ProcName,1,3) as proc_group,
+                ProcName as proc_name,
+                MachineName,
+                SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+                d.SerialNum,
+                p.layer,
+                1 as QueryGroup,
+                p.ChangeTime as sort_time
+            FROM PDL_CKHistory(nolock) p 
+                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
+                LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+                LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+            WHERE LEFT(p.partnum,7) IN ('${part_no}') 
+                AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}') 
+                AND BefStatus='MoveIn' 
+                AND AftStatus='CheckIn' 
+                AND LEFT(p.partnum,4)<>'UMGL'
+                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+            
+            UNION    
+            
+            SELECT DISTINCT 
+                LEFT(p.partnum,7) as part_no,
+                RTRIM(lotnum) as lot_num,
+                RTRIM(LayerName) as layer_name,
+                t.ITypeName as lot_type,
+                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                SUBSTRING(ProcName,1,3) as proc_group,
+                ProcName as proc_name,
+                MachineName,
+                SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+                d.SerialNum,
+                p.layer,
+                2 as QueryGroup,
+                p.ChangeTime as sort_time
+            FROM PDL_CKHistory(nolock) p 
+                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
+                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
+                LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+                LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+            WHERE LEFT(p.partnum,7) IN ('${part_no}') 
+                AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}') 
+                AND BefStatus='MoveIn' 
+                AND AftStatus='CheckIn' 
+                AND LEFT(p.partnum,4)<>'UMGL'
+                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+        ) AS combined_results
+        ORDER BY 
+            QueryGroup,
+            sort_time DESC`;
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        const result = await poolSNAcme.query(sqlStr);
+        const lotList = result.recordset.map(item => (item.lot_num));
+        const layerNumber = result.recordset[0].layer;
+        const sqlLotDefect = `SELECT * FROM aoi_lot_defect_rate WHERE lot_num IN (${lotList.map(item => `'${item}'`).join(',')}) AND layer = '${layerNumber}' AND vrs_code = '${defect_type}'`;
+        console.log(sqlLotDefect);
+        const resultLotDefect = await queryFunc(pool, sqlLotDefect);
+
+        for (const item of result.recordset) {
+            const defectItem = resultLotDefect.find(item => item.lot_num === item.lot_num);
+            item.defect_rate = defectItem.defect_rate;
+            item.vrs_code = defectItem.vrs_code;
+        }
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result.recordset,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
 
 router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
     const { factory, lot_num, layer } = req.params;
@@ -365,7 +656,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
         }
         const startTimestamp = Number(startDate);
         const endTimestamp = Number(endDate);
-        console.log(startTimestamp, convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
+        // console.log(startTimestamp, convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp));
         
         // 直接獲取 pool
         const pool = await mysqlConnection(getDbConfig('aoi'));
@@ -424,100 +715,132 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
 });
 
 // 獲取AOI 圖片
+// 建立連線池工廠
+const createConnectionPool = () => {
+    const pool = genericPool.createPool({
+        create: async () => {
+            const sftp = new Client();
+            await sftp.connect({
+                host: "10.23.60.3",
+                port: 22,
+                username: "Lthmanager_user",
+                password: "1qazXSW@user",
+                readyTimeout: 20000,
+                retries: 3,
+            });
+            return sftp;
+        },
+        destroy: async (client) => {
+            await client.end();
+        }
+    }, {
+        max: 10,
+        min: 2,
+        acquireTimeoutMillis: 30000,
+        idleTimeoutMillis: 30000,
+        evictionRunIntervalMillis: 1000,
+        fifo: false,
+    });
+
+    // 監控連線池狀態
+    setInterval(() => {
+        console.log('Pool status:', {
+            poolSize: pool.size,
+            available: pool.available,
+            pending: pool.pending,
+        });
+    }, 60000);
+
+    return {
+        // 執行操作的包裝函數
+        withConnection: async (operation) => {
+            let client = null;
+            try {
+                client = await pool.acquire();
+                return await operation(client);
+            } finally {
+                if (client) {
+                    await pool.release(client);
+                }
+            }
+        },
+        // 關閉連線池
+        drain: async () => {
+            await pool.drain();
+            await pool.clear();
+        }
+    };
+};
+
+// 建立單例
+const sftpPool = createConnectionPool();
+module.exports = sftpPool;
+
+// 檢查檔案路徑是否存在的輔助函數
+const checkPaths = async (sftp, paths) => {
+    const results = await Promise.all(
+        paths.map(async path => ({
+            path,
+            exists: await sftp.exists(path)
+        }))
+    );
+    return results.find(r => r.exists)?.path;
+};
+
+// router.js
+const sftpPool = require('./sftpConnectionPool');
+
 router.get('/image', async (req, res) => {
-    const sftp = new Client();
     try {
         const { ImagePath, DefectSeq, BoardNo, Side, xValue, yValue } = req.query;
-        
-        let imageBase64 = "";
-        let status = "success";
-        let message = "Image retrieved successfully";
-
         const filePath = ImagePath.replace(/^\\\\[\d\.]+/, "");
+        
+        const result = await sftpPool.withConnection(async (sftp) => {
+            let finalPath = "";
+            const xOffSet = -7;
+            let xValueNum = Number(xValue);
+            let yValueNum = Number(yValue);
 
-        // 重試邏輯
-        const connectWithRetry = async (maxAttempts = 5) => {
-            let attempts = 0;
-            while (attempts < maxAttempts) {
-                try {
-                    await sftp.connect({
-                        host: "10.23.60.3",
-                        port: 22,
-                        username: "Lthmanager_user",
-                        password: "1qazXSW@user",
-                    });
-                    return; // 連接成功
-                } catch (error) {
-                    attempts++;
-                    console.error(`FTP 連接失敗，嘗試次數: ${attempts}`);
-                    if (attempts >= maxAttempts) {
-                        throw new Error('無法連接到 FTP 伺服器');
+            if (filePath.includes("ai_service")) {
+                const exists = await sftp.exists(filePath);
+                if (!exists) {
+                    if (filePath.includes("ud1")) {
+                        const basePath = filePath.replace("ud1", "ud2");
+                        finalPath = await checkPaths(sftp, [
+                            `${basePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`,
+                            `${basePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`
+                        ]);
+                    } else if (filePath.includes("ud2")) {
+                        const basePath = filePath.replace("ud2", "ud1");
+                        finalPath = await checkPaths(sftp, [
+                            `${basePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`,
+                            `${basePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`
+                        ]);
                     }
-                    await new Promise(res => setTimeout(res, 500)); // 等待0.5秒後重試
-                }
-            }
-        };
-
-        await connectWithRetry(); // 嘗試連接
-
-        let finalPath = "";
-        const xOffSet = -7;
-        let xValueNum = Number(xValue);
-        let yValueNum = Number(yValue);
-
-        // 構建 finalPath
-        if (filePath.includes("ai_service")) {
-            const exists = await sftp.exists(filePath);
-            if (!exists) {
-                if (filePath.includes("ud1")) {
-                    const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    const isOffsetExists = await sftp.exists(`${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    if (isNonOffsetExists) {
-                        finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                    }
-                    if (isOffsetExists) {
-                        finalPath = `${filePath.replace("ud1", "ud2")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                    }
-                }
-                if (filePath.includes("ud2")) {
-                    const isNonOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    const isOffsetExists = await sftp.exists(`${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                    if (isNonOffsetExists) {
-                        finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                    }
-                    if (isOffsetExists) {
-                        finalPath = `${filePath.replace("ud2", "ud1")}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                    }
+                } else {
+                    finalPath = await checkPaths(sftp, [
+                        `${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`,
+                        `${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4)}0_${yValueNum.toFixed(4)}0.jpg`
+                    ]);
                 }
             } else {
-                const isOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                const isNonOffsetExists = await sftp.exists(`${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`);
-                if (isOffsetExists) {
-                    finalPath = `${filePath}/${BoardNo}_${Side}_${(xValueNum + xOffSet).toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                }
-                if (isNonOffsetExists) {
-                    finalPath = `${filePath}/${BoardNo}_${Side}_${xValueNum.toFixed(4) + '0'}_${yValueNum.toFixed(4) + '0'}.jpg`;
-                }
+                finalPath = `${filePath}/${DefectSeq}.jpg`;
             }
-        } else {
-            finalPath = `${filePath}/${DefectSeq}.jpg`;
-        }
 
-        // 獲取圖片
-        const buffer = await sftp.get(finalPath);
-        if (buffer) {
-            imageBase64 = buffer.toString("base64");
-        } else {
-            status = "error";
-            message = "Image not found";
-        }
+            if (!finalPath) {
+                throw new Error('Image not found');
+            }
+
+            const buffer = await sftp.get(finalPath);
+            return buffer ? buffer.toString("base64") : null;
+        });
+
         res.json({
             status: 'success',
             message: '成功',
-            image: imageBase64,
+            image: result,
             time: getCurrentTimeInTaipei()
         });
-
 
     } catch (error) {
         console.error('Error retrieving image:', error);
@@ -527,12 +850,7 @@ router.get('/image', async (req, res) => {
             image: "",
             time: getCurrentTimeInTaipei()
         });
-        return; // 確保不再執行後續代碼
-    } finally {
-        sftp.end(); // 確保連接結束
     }
-
-    
 });
 
 
