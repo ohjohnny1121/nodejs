@@ -788,7 +788,6 @@ const checkPaths = async (sftp, paths) => {
 };
 
 // router.js
-const sftpPool = require('./sftpConnectionPool');
 
 router.get('/image', async (req, res) => {
     try {
