@@ -43,7 +43,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() - 2);
+      startTime.setDate(startTime.getDate() -60);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -113,7 +113,7 @@ const sqlSnReadOut = `
       }else if(i.lotnum.trim().slice(4,5)==='F'){
         i.Factory = "SN";
       }
-      const index = issueDtlResult.recordset.findIndex(r => r.LotNum.trim() === i.lotnum.trim());
+      const index = issueDtlResult.recordset.findIndex(r => r.LotNum.trim().slice(0,12) === i.lotnum.trim().slice(0,12));
       if (index !== -1) {
         if(issueDtlResult.recordset[index].OldLotNum.trim().slice(4,5)==='L'){
           i.OldLotNum = issueDtlResult.recordset[index].OldLotNum.trim()
