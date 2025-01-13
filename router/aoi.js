@@ -61,194 +61,6 @@ router.get('/factory-list', async (req, res) => {
 });
 
 
-// router.get('/trend_data_batch', async (req, res) => {
-//     const { items } = req.query // 預期格式: [{process, part_no, lot_num, layer, defect_type},{process, part_no, lot_num, layer, defect_type}, ...]
-    
-//     try {
-//         console.log('接收到的原始項目:', items);
-        
-//         // 解析 items 陣列
-//         let itemsArray;
-//         try {
-//             // 如果是字符串陣列，解析每個字符串為對象
-//             if (Array.isArray(items)) {
-//                 itemsArray = items.map(item => {
-//                     // 移除換行符和多餘的空格
-//                     const cleanItem = item.replace(/\n/g, '').trim();
-//                     return JSON.parse(cleanItem);
-//                 });
-//             } else if (typeof items === 'string') {
-//                 // 如果是單個字符串，嘗試解析為陣列
-//                 itemsArray = JSON.parse(items);
-//             } else {
-//                 throw new Error('無效的輸入格式');
-//             }
-//         } catch (error) {
-//             console.error('解析錯誤:', error);
-//             return res.status(400).json({
-//                 status: 'error',
-//                 message: '輸入格式錯誤',
-//                 time: getCurrentTimeInTaipei()
-//             });
-//         }
-
-//         console.log('解析後的項目:', itemsArray);
-
-//         const results = [];
-//         console.log('接收到的項目:', itemsArray);
-        
-//         // 確保 items 是陣列
-//         itemsArray.forEach((i,index)=>{i=Array.isArray(i) ? JSON.parse(i):i  }) 
-//         console.log('接收到的項目:', itemsArray);
-//         // 先獲取所有 lot 的 check-in time
-//         const lotInfoQueries = itemsArray
-//             .filter(item => item && item.process && item.process.length === 8)
-//             .map(item => `
-//                 SELECT 
-//                     '${item.lot_num}' as lot_num,
-//                     CONVERT(VARCHAR(23), p.changetime, 121) as changetime
-//                 FROM PDL_CKHistory(nolock) p
-//                 LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
-//                 LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
-//                 WHERE 
-//                     lotnum = '${item.lot_num}'
-//                     AND RTRIM(LayerName) = '${item.layer}'
-//                     AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in ('${item.process}')
-//                     AND BefStatus='MoveIn' 
-//                     AND AftStatus='CheckIn'
-//             `);
-        
-//         const lotInfoQuery = lotInfoQueries.join(' UNION ALL ');
-//         const lotInfoResults = lotInfoQueries.length > 0 ? 
-//             await poolSNAcme.query(lotInfoQuery) : 
-//             { recordsets: [[]] };
-
-//         // 建立 lot_num 到 check-in time 的映射
-//         const lotCheckInTimes = {};
-//         lotInfoResults.recordsets[0].forEach(row => {
-//             lotCheckInTimes[row.lot_num] = row.changetime;
-//         });
-
-//         // 批次處理主要查詢
-//         const mainQueries = itemsArray.map(item => `
-//             SELECT * FROM (
-//                 SELECT DISTINCT 
-//                     '${item.defect_type}' as defect_type,
-//                     LEFT(p.partnum,7) as part_no,
-//                     RTRIM(lotnum) as lot_num,
-//                     RTRIM(LayerName) as layer_name,
-//                     t.ITypeName as lot_type,
-//                     CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-//                     SUBSTRING(ProcName,1,3) as proc_group,
-//                     ProcName as proc_name,
-//                     MachineName,
-//                     SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
-//                     d.SerialNum,
-//                     p.layer,
-//                     1 as QueryGroup,
-//                     p.ChangeTime as sort_time
-//                 FROM PDL_CKHistory(nolock) p 
-//                     LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
-//                     LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
-//                     LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
-//                     LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
-//                     LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
-//                 WHERE LEFT(p.partnum,7) IN ('${item.part_no}') 
-//                     AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${item.process}') 
-//                     AND BefStatus='MoveIn' 
-//                     AND AftStatus='CheckIn' 
-//                     AND LEFT(p.partnum,4)<>'UMGL'
-//                     AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTimes[item.lot_num]}', 121)
-                
-//                 UNION    
-                
-//                 SELECT DISTINCT 
-//                     '${item.defect_type}' as defect_type,
-//                     LEFT(p.partnum,7) as part_no,
-//                     RTRIM(lotnum) as lot_num,
-//                     RTRIM(LayerName) as layer_name,
-//                     t.ITypeName as lot_type,
-//                     CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-//                     SUBSTRING(ProcName,1,3) as proc_group,
-//                     ProcName as proc_name,
-//                     MachineName,
-//                     SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
-//                     d.SerialNum,
-//                     p.layer,
-//                     2 as QueryGroup,
-//                     p.ChangeTime as sort_time
-//                 FROM PDL_CKHistory(nolock) p 
-//                     LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
-//                     LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
-//                     LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
-//                     LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
-//                     LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
-//                 WHERE LEFT(p.partnum,7) IN ('${item.part_no}') 
-//                     AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${item.process}') 
-//                     AND BefStatus='MoveIn' 
-//                     AND AftStatus='CheckIn' 
-//                     AND LEFT(p.partnum,4)<>'UMGL'
-//                     AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTimes[item.lot_num]}', 121)
-//             ) AS combined_results
-//         `);
-
-//         const mainQuery = mainQueries.join(' UNION ALL ');
-//         const result = await poolSNAcme.query(mainQuery);
-        
-//         // 批次處理缺陷查詢
-//         const pool = await mysqlConnection(getDbConfig('aoi'));
-//         const lotGroups = {};
-        
-//         result.recordset.forEach(record => {
-//             if (!lotGroups[record.layer]) {
-//                 lotGroups[record.layer] = new Set();
-//             }
-//             lotGroups[record.layer].add(record.lot_num);
-//         });
-
-//         // 為每個 layer 創建並執行缺陷查詢
-//         const defectQueries = Object.entries(lotGroups).map(([layer, lots]) => `
-//             SELECT * FROM aoi_lot_defect_rate 
-//             WHERE lot_num IN (${Array.from(lots).map(lot => `'${lot}'`).join(',')}) 
-//             AND layer = '${layer}'
-//             AND vrs_code IN (${itemsArray.map(item => `'${item.defect_type}'`).join(',')})
-//         `);
-
-//         const defectResults = await Promise.all(
-//             defectQueries.map(query => queryFunc(pool, query))
-//         );
-
-//         // 合併缺陷數據到主要結果
-//         const defectMap = {};
-//         defectResults.flat().forEach(defect => {
-//             const key = `${defect.lot_num}_${defect.vrs_code}`;
-//             defectMap[key] = defect;
-//         });
-
-//         result.recordset.forEach(item => {
-//             const key = `${item.lot_num}_${item.defect_type}`;
-//             const defectItem = defectMap[key];
-//             if (defectItem) {
-//                 item.defect_rate = defectItem.defect_rate;
-//                 item.vrs_code = defectItem.vrs_code;
-//             }
-//         });
-//         console.log('成功');
-//         res.status(200).json({
-//             status: 'success',
-//             message: '成功',
-//             data: result.recordset,
-//             time: getCurrentTimeInTaipei()
-//         });
-//     } catch (error) {
-//         console.error('操作失敗:', error);
-//         res.status(500).json({
-//             status: 'error',
-//             message: error.message || '記錄創建失敗',
-//             time: getCurrentTimeInTaipei()
-//         });
-//     }
-// });
 
 router.get('/trend_data_batch', async (req, res) => {
     const { itemsArray } = req.query;
@@ -322,70 +134,70 @@ router.get('/trend_data_batch', async (req, res) => {
         if(process.length === 8){
         let sqlStr = `
         SELECT * FROM (
-            SELECT DISTINCT 
-                LEFT(p.partnum,7) as part_no,
-                RTRIM(lotnum) as lot_num,
-                RTRIM(LayerName) as layer_name,
-                t.ITypeName as lot_type,
-                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                SUBSTRING(ProcName,1,3) as proc_group,
-                ProcName as proc_name,
-                MachineName,
-                SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
-                d.SerialNum,
-                p.layer,
-                1 as QueryGroup,
-                p.ChangeTime as sort_time
-            FROM PDL_CKHistory(nolock) p 
-                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
-                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
-                LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
-                LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
-                LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
-            WHERE LEFT(p.partnum,7) IN ('${part_no}') 
-                AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}') 
-                AND BefStatus='MoveIn' 
-                AND AftStatus='CheckIn' 
-                AND LEFT(p.partnum,4)<>'UMGL'
-                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
-            
-            UNION    
-            
-            SELECT DISTINCT 
-                LEFT(p.partnum,7) as part_no,
-                RTRIM(lotnum) as lot_num,
-                RTRIM(LayerName) as layer_name,
-                t.ITypeName as lot_type,
-                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                SUBSTRING(ProcName,1,3) as proc_group,
-                ProcName as proc_name,
-                MachineName,
-                SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
-                d.SerialNum,
-                p.layer,
-                2 as QueryGroup,
-                p.ChangeTime as sort_time
-            FROM PDL_CKHistory(nolock) p 
-                LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
-                LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
-                LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
-                LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
-                LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
-            WHERE LEFT(p.partnum,7) IN ('${part_no}') 
-                AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}') 
-                AND BefStatus='MoveIn' 
-                AND AftStatus='CheckIn' 
-                AND LEFT(p.partnum,4)<>'UMGL'
-                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
-        ) AS combined_results
-        ORDER BY 
-            QueryGroup,
-            sort_time DESC`;
+    SELECT DISTINCT top 49
+        LEFT(p.partnum,7) as part_no,
+        RTRIM(lotnum) as lot_num,
+        RTRIM(LayerName) as layer_name,
+        t.ITypeName as lot_type,
+        CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+        SUBSTRING(ProcName,1,3) as proc_group,
+        ProcName as proc_name,
+        MachineName,
+        SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+        d.SerialNum,
+        p.layer,
+        1 as QueryGroup,
+        p.ChangeTime as sort_time
+    FROM PDL_CKHistory(nolock) p
+        LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode
+        LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
+        LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+        LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+        LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+    WHERE LEFT(p.partnum,7) IN ('${part_no}')
+        AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}')
+        AND BefStatus='MoveIn'
+        AND AftStatus='CheckIn'
+        AND LEFT(p.partnum,4)<>'UMGL'
+        AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+    order by p.ChangeTime DESC
+
+    UNION
+
+    SELECT DISTINCT TOP 50
+        LEFT(p.partnum,7) as part_no,
+        RTRIM(lotnum) as lot_num,
+        RTRIM(LayerName) as layer_name,
+        t.ITypeName as lot_type,
+        CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+        SUBSTRING(ProcName,1,3) as proc_group,
+        ProcName as proc_name,
+        MachineName,
+        SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
+        d.SerialNum,
+        p.layer,
+        2 as QueryGroup,
+        p.ChangeTime as sort_time
+    FROM PDL_CKHistory(nolock) p
+        LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode
+        LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
+        LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+        LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
+        LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
+    WHERE LEFT(p.partnum,7) IN ('${part_no}')
+        AND SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) in('${process}')
+        AND BefStatus='MoveIn'
+        AND AftStatus='CheckIn'
+        AND LEFT(p.partnum,4)<>'UMGL'
+        AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 121)
+    order by p.ChangeTime ASC
+) AS combined_results
+ORDER BY sort_time ASC`;
             result = await poolSNAcme.query(sqlStr);
         }else{
             let sqlStr = `
         SELECT * FROM (
-            SELECT DISTINCT 
+            SELECT DISTINCT top 50
                 LEFT(p.partnum,7) as part_no,
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
@@ -411,10 +223,10 @@ router.get('/trend_data_batch', async (req, res) => {
                 AND AftStatus='CheckIn' 
                 AND LEFT(p.partnum,4)<>'UMGL'
                 AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
-            
+            order by p.ChangeTime DESC
             UNION    
             
-            SELECT DISTINCT 
+            SELECT DISTINCT TOP 50
                 LEFT(p.partnum,7) as part_no,
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
@@ -439,11 +251,10 @@ router.get('/trend_data_batch', async (req, res) => {
                 AND BefStatus='MoveIn' 
                 AND AftStatus='CheckIn' 
                 AND LEFT(p.partnum,4)<>'UMGL'
-                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+                AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 121)
+            order by p.ChangeTime ASC
         ) AS combined_results
-        ORDER BY 
-            QueryGroup,
-            sort_time DESC`;
+        ORDER BY sort_time ASC`;
             result = await poolSNAcme.query(sqlStr);
         }
 
@@ -452,7 +263,7 @@ router.get('/trend_data_batch', async (req, res) => {
         // console.log(result.recordsets[0][0]);
         // res.json(result.recordsets[0][0].layer);
         let layerNumber = result.recordsets[0][0].layer;
-        let sqlLotDefect = `SELECT * FROM aoi_lot_defect_rate WHERE lot_num IN (${lotList.map(item => `'${item}'`).join(',')}) AND layer = '${layerNumber}' AND vrs_code = '${defect_type}'`;
+        let sqlLotDefect = `SELECT * FROM aoi_lot_defect_rate WHERE lot_num IN (${lotList.map(item => `'${item}'`).join(',')}) AND layer = '${layerNumber}' AND defect_code = '${defect_type}'`;
         
         let resultLotDefect = await queryFunc(pool, sqlLotDefect);
 
@@ -460,7 +271,7 @@ router.get('/trend_data_batch', async (req, res) => {
             const defectItem = resultLotDefect.find(defect => defect.lot_num === item.lot_num);
             if (defectItem) {
                 item.defect_rate = defectItem.defect_rate;
-                item.vrs_code = defectItem.vrs_code;
+                item.defect_code = defectItem.defect_code;
             }
             
             // 刪除不需要的屬性

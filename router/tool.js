@@ -39,26 +39,6 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
-router.get('/factory-list', async (req, res) => {
-    try {
-        const pool = await mysqlConnection(getDbConfig('common'));
-        const sqlStr = `SELECT DISTINCT name FROM factory`;
-        const result = await queryFunc(pool, sqlStr);
-        res.status(200).json({
-            status: 'success',
-            message: '成功',
-            data: result,
-            time: getCurrentTimeInTaipei()
-        });
-    } catch (error) {
-        console.error('操作失敗:', error);
-        res.status(500).json({
-            status: 'error',
-            message: error.message || '記錄創建失敗',
-            time: getCurrentTimeInTaipei()
-        });
-    }
-});
 
 router.get('/update_trigger_factory', async (req, res) => {
 
@@ -70,6 +50,15 @@ router.get('/update_trigger_factory', async (req, res) => {
         const sqlStrDetail = `SELECT distinct part_no,factory FROM aoi_yield_defect WHERE part_no IN (${partNoList}) order by part_no,factory`;
         // console.log(sqlStrDetail);
         const resultDetail = await queryFunc(pool, sqlStrDetail);
+        result.forEach(item => {
+            item.factory = resultDetail.filter(r => r.part_no === item.part_no).map(r => `${r.factory}`).join(',');
+
+        });
+        const sqlStrUpdate = `UPDATE aoi_spec SET factory = ? WHERE part_no = ?`;
+        result.forEach(item => {
+            queryFunc(pool, sqlStrUpdate, [item.factory, item.part_no]);
+        });
+
         res.status(200).json({
             status: 'success',
             message: '成功',
