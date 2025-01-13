@@ -150,12 +150,14 @@ router.get('/trend_data_batch', async (req, res) => {
         SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
         d.SerialNum,
         p.layer,
+        b.PnlToUnit as upp,
         1 as QueryGroup,
         p.ChangeTime as sort_time
     FROM PDL_CKHistory(nolock) p
         LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode
         LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
         LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+        LEFT JOIN prodbasic(nolock) b ON LEFT(p.partnum,7)=LEFT(b.PartNum,7)
         LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
         LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
     WHERE LEFT(p.partnum,7) IN ('${part_no}')
@@ -180,12 +182,14 @@ router.get('/trend_data_batch', async (req, res) => {
         SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
         d.SerialNum,
         p.layer,
+        b.PnlToUnit as upp,
         2 as QueryGroup,
         p.ChangeTime as sort_time
     FROM PDL_CKHistory(nolock) p
         LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode
         LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer
         LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+        LEFT JOIN prodbasic(nolock) b ON LEFT(p.partnum,7)=LEFT(b.PartNum,7)
         LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
         LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
     WHERE LEFT(p.partnum,7) IN ('${part_no}')
@@ -207,7 +211,7 @@ ORDER BY sort_time ASC`;
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
                 CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                
+                b.PnlToUnit as upp,
                 ProcName as proc_name,
                 MachineName,
                 SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
@@ -219,6 +223,7 @@ ORDER BY sort_time ASC`;
                 LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
                 LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
                 LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                LEFT JOIN prodbasic(nolock) b ON LEFT(p.partnum,7)=LEFT(b.PartNum,7)
                 LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
                 LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
             WHERE LEFT(p.partnum,7) IN ('${part_no}') 
@@ -236,7 +241,7 @@ ORDER BY sort_time ASC`;
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
                 CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                
+                b.PnlToUnit as upp,
                 ProcName as proc_name,
                 MachineName,
                 SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
@@ -248,6 +253,7 @@ ORDER BY sort_time ASC`;
                 LEFT JOIN ProcBasic(nolock) c ON p.proccode=c.ProcCode 
                 LEFT JOIN NumofLayer(nolock) n ON p.layer=n.Layer 
                 LEFT JOIN PDL_Machine(nolock) m ON p.Machine=m.MachineId
+                LEFT JOIN prodbasic(nolock) b ON LEFT(p.partnum,7)=LEFT(b.PartNum,7)
                 LEFT JOIN ClassIssType(nolock) t ON p.isstype=t.ITypeCode
                 LEFT JOIN V_PnumProcRouteDtl(nolock) d ON p.partnum=d.PartNum AND p.revision=d.Revision AND p.proccode=d.ProcCode
             WHERE LEFT(p.partnum,7) IN ('${part_no}') 
@@ -262,7 +268,7 @@ ORDER BY sort_time ASC`;
             result = await poolSNAcme.query(sqlStr);
         }
 
-        
+        // res.json(result.recordset);
         let lotList = result.recordset.map(item => (item.lot_num));
         // console.log(result.recordsets[0][0]);
         // res.json(result.recordsets[0][0].layer);
@@ -270,13 +276,13 @@ ORDER BY sort_time ASC`;
         let sqlLotDefect = `SELECT * FROM aoi_lot_defect_rate WHERE lot_num IN (${lotList.map(item => `'${item}'`).join(',')}) AND layer = '${layerNumber}' AND defect_code = '${defect_type}'`;
         
         let resultLotDefect = await queryFunc(pool, sqlLotDefect);
-
+        
         for (const item of result.recordset) {
             const defectItem = resultLotDefect.find(defect => defect.lot_num === item.lot_num);
-            if (defectItem) {
-                item.defect_rate = defectItem.defect_rate;
-                item.defect_code = defectItem.defect_code;
-            }
+            // if (defectItem) {
+            item.defect_rate = defectItem?defectItem.defect_rate:0;
+            
+            // }
             
             // 刪除不需要的屬性
             delete item.QueryGroup;
