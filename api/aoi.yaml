@@ -930,7 +930,7 @@ paths:
                                 type: string
                               defect_rate:
                                 type: number
-                              vrs_code:
+                              defect_code:
                                 type: string
                   time:
                     type: string
@@ -1008,3 +1008,145 @@ paths:
                   time:
                     type: string
                     format: date-time
+  /aoi/process_name:
+    post:
+      tags:
+        - process_name
+      summary: Add or update process name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                process_name:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: Process name added or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error adding or updating process name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    get:
+      tags:
+        - process_name
+      summary: Retrieve process name
+      responses:
+        '200':
+          description: Process name retrieved successfully
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                    data:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          process_name:
+                            type: string
+                          creator:
+                            type: string
+                    time:
+                      type: string
+                      format: date-time
+          '500':
+            description: Error retrieving process name
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                    time:
+                      type: string
+                      format: date-time
+  /aoi/process_name/{process_name}:
+    delete:
+      tags:
+        - process_name
+      summary: Delete process name
+      parameters:
+        - in: path
+          name: process_name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Process name deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting process name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Process name is necessary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: 'process_name is necessary'
+                  time:
+                    type: string
+                    format: date-time
+

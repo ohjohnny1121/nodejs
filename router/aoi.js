@@ -21,12 +21,16 @@ router.use(async (req, res, next) => {
         if (!poolAcme) {
             await initializePools();
             ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc, poolH3Acme,poolSNNCN } = poolObj);
-            // console.log('Initialized pools:', poolObj);
         }
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "GET,POST");
-        res.setHeader("Access-Control-Allow-Header", "Content-Type,Authorization");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
         res.setHeader("Access-Control-Allow-Credentials", true);
+        
+        if (req.method === 'OPTIONS') {
+            return res.status(200).end();
+        }
+        
         next();
     } catch (error) {
         console.error("連接池初始化失敗:", error);
@@ -1165,4 +1169,101 @@ router.get('/ncnrecord/:lot', async (req, res) => {
         });
         }     
 });
+
+
+router.get('/process_name', async (req, res) => {
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    try {
+        const result = await pool.query(`SELECT * FROM process_name ORDER BY create_time DESC`);
+
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result[0], // mysql2 返回的是陣列，第一個元素才是結果
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
+router.post('/process_name', async (req, res) => {
+    const { process_name, creator } = req.body;
+    console.log(process_name, creator);
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    try {
+        const result = await pool.query(
+            `INSERT INTO process_name (name, creator) 
+             VALUES (?, ?) 
+             ON DUPLICATE KEY UPDATE 
+             creator = VALUES(creator)`,
+            [process_name, creator]
+        );
+        
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result[0],
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
+router.delete('/process_name/:process_name', async (req, res) => {
+    const { process_name } = req.params;
+    console.log('Attempting to delete process_name:', process_name);
+    
+    if (!process_name) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'process_name is necessary',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    try {
+        const result = await pool.query(
+            'DELETE FROM process_name WHERE name = ?',
+            [process_name]
+        );
+        
+        // console.log('Delete result:', result);
+        
+        // if (result[0].affectedRows === 0) {
+        //     return res.status(404).json({
+        //         status: 'error',
+        //         message: '找不到要刪除的記錄',
+        //         time: getCurrentTimeInTaipei()
+        //     });
+        // }
+        
+        res.status(200).json({
+            status: 'success',
+            message: '成功刪除記錄',
+            data: result[0],
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('刪除操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '刪除記錄失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
 module.exports = router;
