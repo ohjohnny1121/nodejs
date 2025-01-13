@@ -310,7 +310,11 @@ router.get('/trend_data_batch', async (req, res) => {
                 AND AftStatus='CheckIn'`;
             resultLotInfo = await poolSNAcme.query(sqlLotInfo);
         }
-
+        if(resultLotInfo.recordsets[0].length === 0){
+            console.log(item,'未找到記錄');
+            continue;
+        }
+        console.log(resultLotInfo.recordsets);
         let lotCheckInTime = resultLotInfo.recordsets[0][0].ChangeTime;
 
         let pool = await mysqlConnection(getDbConfig('aoi'));
@@ -387,7 +391,7 @@ router.get('/trend_data_batch', async (req, res) => {
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
                 CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                SUBSTRING(ProcName,1,3) as proc_group,
+                
                 ProcName as proc_name,
                 MachineName,
                 SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
@@ -416,7 +420,7 @@ router.get('/trend_data_batch', async (req, res) => {
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
                 CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
-                SUBSTRING(ProcName,1,3) as proc_group,
+                
                 ProcName as proc_name,
                 MachineName,
                 SUBSTRING(ProcName,1,3)+CAST(BefDegree AS VARCHAR)+SUBSTRING(ProcName,4,6)+CAST(BefTimes AS VARCHAR) as proc_name_e,
@@ -442,6 +446,7 @@ router.get('/trend_data_batch', async (req, res) => {
             sort_time DESC`;
             result = await poolSNAcme.query(sqlStr);
         }
+
         
         let lotList = result.recordset.map(item => (item.lot_num));
         // console.log(result.recordsets[0][0]);
@@ -452,9 +457,16 @@ router.get('/trend_data_batch', async (req, res) => {
         let resultLotDefect = await queryFunc(pool, sqlLotDefect);
 
         for (const item of result.recordset) {
-            const defectItem = resultLotDefect.find(item => item.lot_num === item.lot_num);
-            item.defect_rate = defectItem.defect_rate;
-            item.vrs_code = defectItem.vrs_code;
+            const defectItem = resultLotDefect.find(defect => defect.lot_num === item.lot_num);
+            if (defectItem) {
+                item.defect_rate = defectItem.defect_rate;
+                item.vrs_code = defectItem.vrs_code;
+            }
+            
+            // 刪除不需要的屬性
+            delete item.QueryGroup;
+            delete item.sort_time;
+            delete item.SerialNum;
         }
         finalResults.push({part_no:part_no, lot_num:lot_num, layer:layer, defect_type:defect_type,process:process, data:result.recordset});
     }
@@ -570,9 +582,16 @@ router.get('/trend_data/:process/:part_no/:lot_num/:layer/:defect_type', async (
         const resultLotDefect = await queryFunc(pool, sqlLotDefect);
 
         for (const item of result.recordset) {
-            const defectItem = resultLotDefect.find(item => item.lot_num === item.lot_num);
-            item.defect_rate = defectItem.defect_rate;
-            item.vrs_code = defectItem.vrs_code;
+            const defectItem = resultLotDefect.find(defect => defect.lot_num === item.lot_num);
+            if (defectItem) {
+                item.defect_rate = defectItem.defect_rate;
+                item.vrs_code = defectItem.vrs_code;
+            }
+            
+            // 刪除不需要的屬性
+            delete item.QueryGroup;
+            delete item.sort_time;
+            delete item.SerialNum;
         }
 
 
