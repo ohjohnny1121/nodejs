@@ -624,7 +624,7 @@ router.get('/lot-list/:factory/:lot_num/:layer', async (req, res) => {
     }
     try {
         const pool = await mysqlConnection(getDbConfig('aoi'));
-        const sqlStr = `SELECT a.*,s.triger,s.target FROM aoi_yield_defect a left join (select * from aoi_spec where isdelete = false) s on upper(a.part_no) = upper(s.part_no) WHERE factory = '${factory}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
+        const sqlStr = `SELECT a.*,s.triger,s.target FROM aoi_yield_defect a left join (select * from aoi_spec where isdelete = false) s on upper(a.part_no) = upper(s.part_no) WHERE a.factory = '${factory}' AND lot_num = '${lot_num}' AND layer = '${layer}'`;
         const result = await queryFunc(pool, sqlStr);
         if (result.length === 0) {
             return res.status(404).json({
