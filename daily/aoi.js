@@ -43,7 +43,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() -60);
+      startTime.setDate(startTime.getDate() -90);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -86,7 +86,7 @@ const sqlSnReadOut = `
     //
     const lotnumList = [...new Set(snReadOutResult.recordset.map(i => i.lotnum.trim()))];
     const sqlStringLotNum = `'${lotnumList.join("','")}'`;
-    
+    // res.json(snReadOutResult);
     // 第二次查詢：比對 YM 和 H3 的批號
     const sqlissueDtl = `SELECT DISTINCT OldLotNum,trim(LotNum)LotNum
     FROM PDL_IssueDtl 
@@ -173,7 +173,7 @@ const sqlSnReadOut = `
         ON X.LotNum =C.lotnum AND X.layer =C.layer
         WHERE X.LotNum IN (${sqlStringLotNum}) 
         AND X.Classify !='0'`;
-        console.log(snvrs);
+        // console.log(snvrs);
       // const snvrsResult = await poolSNDc.query(snvrs);
       // res.json(snvrsResult.recordset);
       const sqlTrigger = `SELECT * FROM aoi_spec`;
@@ -315,9 +315,7 @@ const sqlSnReadOut = `
   
         const uniqueAosBefCount = new Set(aosbefData.map(d => d.BoardNo + d.VrsCode)).size;
         const uniqueAosAftCount = new Set(aosaftData.map(d => d.BoardNo + d.VrsCode)).size;
-        if(LotNum.trim() === '24BDF007-01-00'){
-          console.log(LotNum,aosbefData,uniqueAosBefCount,uniqueAosAftCount);
-        }
+        
         // 檢查 Core Layer
         // let checkCoreLayer = "";
         // if (LayerType === "CORE") {
@@ -396,7 +394,7 @@ router.get("/trend", async (req, res) => {
   try{
   const startDateObj = new Date();
   const endDateObj = new Date();
-  startDateObj.setDate(startDateObj.getDate() - 30);
+  startDateObj.setDate(startDateObj.getDate() - 50);
   const startDateStr = startDateObj.toISOString().split('T')[0];
   const endDateStr = endDateObj.toISOString().split('T')[0];
   const sql = `WITH ProcessHistory AS (
@@ -417,7 +415,7 @@ router.get("/trend", async (req, res) => {
                 a.CenterPart part_no,
                 a.LotNum lot_num,
                 a.Layer layer,
-                a.VrsCode vrs_code,
+                a.Classify defect_code,
                 --COUNT(*) as count,
                 CAST(COUNT(*) AS FLOAT) / J.Qnty_S as defect_rate
                 --J.Qnty_S as qnty_s
@@ -433,7 +431,7 @@ router.get("/trend", async (req, res) => {
                 a.CenterPart,
                 a.LotNum,
                 a.Layer,
-                a.VrsCode,
+                a.Classify,
                 J.Qnty_S`;
 
   const result = await poolSNDc.query(sql);
@@ -444,7 +442,8 @@ router.get("/trend", async (req, res) => {
       db: "aoi",
       table: "aoi_lot_defect_rate",
       match: [
-        'defect_rate'
+        'defect_rate',
+        'defect_code'
       ]
     },
   });

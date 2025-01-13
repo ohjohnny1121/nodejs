@@ -51,11 +51,12 @@ cron.schedule('00 00 * * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('45 52 11 * * *', async () => {
+cron.schedule('25 19 15 * * *', async () => {
     try {
-        // console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
-        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
-        // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        // console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
