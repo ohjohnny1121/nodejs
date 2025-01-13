@@ -40,8 +40,9 @@ cron.schedule('01 00 08 * * *', async () => {
 //每小時執行一次
 cron.schedule('00 00 * * * *', async () => {
     try {
-        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
+        console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         
     } catch (error) {
@@ -50,10 +51,10 @@ cron.schedule('00 00 * * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('50 56 15 * * *', async () => {
+cron.schedule('45 52 11 * * *', async () => {
     try {
-        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
-        // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        // console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         
     } catch (error) {
@@ -75,6 +76,7 @@ const initDatabase = async () => {
         app.use('/user', require('./router/user.js'));
         app.use('/aoi', require('./router/aoi.js'));
         app.use('/tartri', require('./router/tartri.js'));
+        app.use('/tool', require('./router/tool.js'));
         // 創建獨立的路由器
         const aoiRouter = express.Router();
         const userRouter = express.Router();
