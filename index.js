@@ -7,7 +7,7 @@ const YAML = require('yamljs');
 const path = require('path');
 const cron = require('node-cron');
 const os = require('os');
-const { dailyAdd, stackAdd } = require('./daily/dailyFunc.js');
+const { dailyAdd, stackAdd, apiExecute } = require('./daily/dailyFunc.js');
 const cors = require('cors');
 // 獲取主機名稱
 const hostname = os.hostname();
@@ -32,6 +32,7 @@ cron.schedule('01 00 08 * * *', async () => {
         console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        await apiExecute(`${API_BASE_URL}/daily/tool/update_trigger_factory`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/transfer`);
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
@@ -51,15 +52,27 @@ cron.schedule('00 00 * * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('25 19 15 * * *', async () => {
+cron.schedule('55 35 13 * * *', async () => {
     try {
         // console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
-        await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        console.log(`${API_BASE_URL}/tool/update_trigger_factory 開始執行更新`);
+        await apiExecute(`${API_BASE_URL}/tool/update_trigger_factory`);
         
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
+    }
+});
+
+// 例如每天早上 8:30 執行
+cron.schedule('30 08 * * *', async () => {
+    try {
+        console.log(`${API_BASE_URL}/tool/update_trigger_factory 開始執行更新`);
+        await stackAdd(`${API_BASE_URL}/tool/update_trigger_factory`);
+    } catch (error) {
+        console.error(`[${hostname}] 執行 update_trigger_factory 失敗:`, error);
     }
 });
 
@@ -186,6 +199,17 @@ const initDatabase = async () => {
                     </body>
                 </html>
             `);
+        });
+
+        app.get('/update_trigger', async (req, res) => {
+            try {
+                console.log('開始執行 update_trigger_factory');
+                await stackAdd(`${API_BASE_URL}/tool/update_trigger_factory`);
+                res.json({ message: 'update_trigger_factory 執行成功' });
+            } catch (error) {
+                console.error('執行 update_trigger_factory 失�:', error);
+                res.status(500).json({ error: '執行失敗' });
+            }
         });
 
         // 在資料庫初始化成功後才啟動 Express 服務器
