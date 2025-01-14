@@ -216,6 +216,18 @@ const stackAdd = async (api) => {
     }
 };
 
+//單純執行的函式，不回傳資料
+const apiExecute = async (api) => {
+    try {
+        const response = await axios.get(api);
+        const { data } = response;
+        console.log(`API 調用成功: ${api}`);
+        return data;
+    } catch (error) {
+        throw new APIError(`API 調用失敗: ${api}`, error);
+    }
+};
+
 // 記錄執行狀態到資料庫的函數
 const logExecutionStatus = async (db, operation, status, details) => {
     const sql = `
@@ -237,5 +249,6 @@ module.exports = {
     addToDB,
     getFromDB,
     DatabaseError,
-    APIError
+    APIError,
+    apiExecute
 };

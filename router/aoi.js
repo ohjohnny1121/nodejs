@@ -1197,7 +1197,7 @@ router.get('/ncnrecord/:lot', async (req, res) => {
 router.get('/process_name', async (req, res) => {
     const pool = await mysqlConnection(getDbConfig('aoi'));
     try {
-        const result = await pool.query(`SELECT * FROM process_name ORDER BY create_time DESC`);
+        const result = await pool.query(`SELECT * FROM process_name ORDER BY time DESC`);
 
         res.status(200).json({
             status: 'success',
