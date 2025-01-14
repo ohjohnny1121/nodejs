@@ -68,7 +68,7 @@ router.get('/factory-list', async (req, res) => {
 
 router.get('/trend_data_batch/:req_count', async (req, res) => {
     const { itemsArray } = req.query;
-    const req_count = req.params.req_count/2;
+    let req_count = req.params.req_count/2;
     console.log(itemsArray);
     if(req_count === 0){
         res.status(200).json({
@@ -161,7 +161,7 @@ router.get('/trend_data_batch/:req_count', async (req, res) => {
         RTRIM(lotnum) as lot_num,
         RTRIM(LayerName) as layer_name,
         t.ITypeName as lot_type,
-        CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+        CONVERT(VARCHAR(23), p.ChangeTime, 120) as check_in_time,
         SUBSTRING(ProcName,1,3) as proc_group,
         ProcName as proc_name,
         MachineName,
@@ -183,7 +183,7 @@ router.get('/trend_data_batch/:req_count', async (req, res) => {
         AND BefStatus='MoveIn'
         AND AftStatus='CheckIn'
         AND LEFT(p.partnum,4)<>'UMGL'
-        AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+        AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 120)
     order by p.ChangeTime DESC
 
     UNION
@@ -193,7 +193,7 @@ router.get('/trend_data_batch/:req_count', async (req, res) => {
         RTRIM(lotnum) as lot_num,
         RTRIM(LayerName) as layer_name,
         t.ITypeName as lot_type,
-        CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+        CONVERT(VARCHAR(23), p.ChangeTime, 120) as check_in_time,
         SUBSTRING(ProcName,1,3) as proc_group,
         ProcName as proc_name,
         MachineName,
@@ -215,7 +215,7 @@ router.get('/trend_data_batch/:req_count', async (req, res) => {
         AND BefStatus='MoveIn'
         AND AftStatus='CheckIn'
         AND LEFT(p.partnum,4)<>'UMGL'
-        AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 121)
+        AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 120)
     order by p.ChangeTime ASC
 ) AS combined_results
 ORDER BY sort_time ASC`;
@@ -228,7 +228,7 @@ ORDER BY sort_time ASC`;
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
-                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                CONVERT(VARCHAR(23), p.ChangeTime, 120) as check_in_time,
                 b.PnlToUnit as upp,
                 ProcName as proc_name,
                 MachineName,
@@ -249,7 +249,7 @@ ORDER BY sort_time ASC`;
                 AND BefStatus='MoveIn' 
                 AND AftStatus='CheckIn' 
                 AND LEFT(p.partnum,4)<>'UMGL'
-                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 121)
+                AND p.ChangeTime < CONVERT(DATETIME, '${lotCheckInTime}', 120)
             order by p.ChangeTime DESC
             UNION    
             
@@ -258,7 +258,7 @@ ORDER BY sort_time ASC`;
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
                 t.ITypeName as lot_type,
-                CONVERT(VARCHAR(23), p.ChangeTime, 121) as check_in_time,
+                CONVERT(VARCHAR(23), p.ChangeTime, 120) as check_in_time,
                 b.PnlToUnit as upp,
                 ProcName as proc_name,
                 MachineName,
@@ -279,7 +279,7 @@ ORDER BY sort_time ASC`;
                 AND BefStatus='MoveIn' 
                 AND AftStatus='CheckIn' 
                 AND LEFT(p.partnum,4)<>'UMGL'
-                AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 121)
+                AND p.ChangeTime >= CONVERT(DATETIME, '${lotCheckInTime}', 120)
             order by p.ChangeTime ASC
         ) AS combined_results
         ORDER BY sort_time ASC`;
