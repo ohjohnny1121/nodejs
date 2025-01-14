@@ -66,9 +66,27 @@ router.get('/factory-list', async (req, res) => {
 
 
 
-router.get('/trend_data_batch', async (req, res) => {
+router.get('/trend_data_batch/:req_count', async (req, res) => {
     const { itemsArray } = req.query;
+    const req_count = req.params.req_count/2;
     console.log(itemsArray);
+    if(req_count === 0){
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: [],
+            time: getCurrentTimeInTaipei()
+        });
+    }
+    if(Number(req_count)){
+       
+    }else{
+        res.status(400).json({
+            status: 'error',
+            message: '數量(req_count)輸入格式錯誤',
+            time: getCurrentTimeInTaipei()
+        });
+    }
     try {
         let items;
         try {
@@ -138,7 +156,7 @@ router.get('/trend_data_batch', async (req, res) => {
         if(process.length === 8){
         let sqlStr = `
         SELECT * FROM (
-    SELECT DISTINCT top 49
+    SELECT DISTINCT top ${req_count}
         LEFT(p.partnum,7) as part_no,
         RTRIM(lotnum) as lot_num,
         RTRIM(LayerName) as layer_name,
@@ -170,7 +188,7 @@ router.get('/trend_data_batch', async (req, res) => {
 
     UNION
 
-    SELECT DISTINCT TOP 50
+    SELECT DISTINCT TOP ${req_count}
         LEFT(p.partnum,7) as part_no,
         RTRIM(lotnum) as lot_num,
         RTRIM(LayerName) as layer_name,
@@ -205,7 +223,7 @@ ORDER BY sort_time ASC`;
         }else{
             let sqlStr = `
         SELECT * FROM (
-            SELECT DISTINCT top 50
+            SELECT DISTINCT top ${req_count}
                 LEFT(p.partnum,7) as part_no,
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
@@ -235,7 +253,7 @@ ORDER BY sort_time ASC`;
             order by p.ChangeTime DESC
             UNION    
             
-            SELECT DISTINCT TOP 50
+            SELECT DISTINCT TOP ${req_count}
                 LEFT(p.partnum,7) as part_no,
                 RTRIM(lotnum) as lot_num,
                 RTRIM(LayerName) as layer_name,
@@ -407,8 +425,7 @@ router.get('/trend_data/:process/:part_no/:lot_num/:layer/:defect_type', async (
             if (defectItem) {
                 item.defect_rate = defectItem.defect_rate;
                 item.vrs_code = defectItem.vrs_code;
-            }
-            
+            }            
             // 刪除不需要的屬性
             delete item.QueryGroup;
             delete item.sort_time;
