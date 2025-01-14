@@ -850,12 +850,17 @@ paths:
   #                   type: string
   #                   format: date-time
 
-  /aoi/trend_data_batch:
+  /aoi/trend_data_batch/{req_count}:
     get:
       tags:
         - AOI Trend
       summary: Retrieve batch trend data
       parameters:
+        - in: path
+          name: req_count
+          required: true
+          schema:
+            type: number
         - in: query
           name: itemsArray
           required: true
