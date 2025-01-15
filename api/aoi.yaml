@@ -1159,4 +1159,124 @@ paths:
                   time:
                     type: string
                     format: date-time
-
+  /aoi/central_part_no:
+    post:
+      tags:
+        - central_part_no
+      summary: Add or update central part number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_no:
+                  type: string
+                factory:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: Central part number added or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    delete:
+      tags:
+        - central_part_no
+      summary: Delete central part number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_no:
+                  type: string
+                factory:
+                  type: string
+      responses:
+        '200':
+          description: Central part number deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting central part number
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    get:
+      tags:
+        - central_part_no
+      summary: Retrieve central part number
+      responses:
+        '200':
+          description: Central part number retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_no:
+                          type: string
+                        factory:
+                          type: string
+                        creator:
+                          type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving central part number
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
