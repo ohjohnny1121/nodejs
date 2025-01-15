@@ -43,7 +43,7 @@ router.get('/aoi-spec', async (req, res) => {
     
     const pool = await mysqlConnection(getDbConfig('aoi'));
     try {
-        const sqlStr = `SELECT * FROM aoi_spec WHERE isdelete='false'`;
+        const sqlStr = `SELECT *,round(target,2) as target,round(triger,2) as triger FROM aoi_spec WHERE isdelete='false'`;
         const result = await queryFunc(pool, sqlStr);
         res.status(200).json({
             status: 'success',
