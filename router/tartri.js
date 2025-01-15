@@ -62,18 +62,42 @@ router.get('/aoi-spec', async (req, res) => {
 });
 
 router.post('/aoi-spec', async (req, res) => {
-    const { part_no, target,triger,creator,factory } = req.body;
-    // console.log(uid);
+    const { part_no, target, triger, creator, factory } = req.body;
     const pool = await mysqlConnection(getDbConfig('aoi'));
     try {
-        const sqlStr = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}'`;
-        const result = await queryFunc(pool, sqlStr);
-        const sqlStradd = `INSERT INTO aoi_spec (part_no, target, triger,creator,isdelete,factory) VALUES ('${part_no}', '${target}', '${triger}','${creator}','false','${factory}')`;
-        const resultadd = await queryFunc(pool, sqlStradd);
+        // 使用單一 SQL 語句處理插入或更新
+        // const sqlStr = `
+        //     INSERT INTO aoi_spec 
+        //         (part_no, target, triger, creator, isdelete, factory) 
+        //     VALUES 
+        //         (?, ?, ?, ?, 'false', ?)
+        //     ON DUPLICATE KEY UPDATE 
+        //         target = VALUES(target),
+        //         triger = VALUES(triger),
+        //         creator = VALUES(creator),
+        //         isdelete = 'false'
+        // `;
+        const sqlDelete = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}' AND factory = '${factory}'`;
+        await queryFunc(pool, sqlDelete);
+        const sqlStr = `
+            INSERT INTO aoi_spec 
+                (part_no, target, triger, creator, isdelete, factory) 
+            VALUES 
+                (?, ?, ?, ?, 'false', ?)
+        `;
+        
+        const result = await queryFunc(pool, sqlStr, [
+            part_no, 
+            target, 
+            triger, 
+            creator, 
+            factory
+        ]);
+
         res.status(200).json({
             status: 'success',
             message: '成功',
-            data: resultadd,
+            data: result,
             time: getCurrentTimeInTaipei()
         });
     } catch (error) {
