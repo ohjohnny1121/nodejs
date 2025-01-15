@@ -45,21 +45,22 @@ cron.schedule('00 00 * * * *', async () => {
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
-        
+        console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
+        await apiExecute(`${API_BASE_URL}/tool/insert_trigger_factory`);
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
     }
 });
 
 // 固定時間執行
-cron.schedule('55 35 13 * * *', async () => {
+cron.schedule('10 47 13 * * *', async () => {
     try {
         // console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
-        console.log(`${API_BASE_URL}/tool/update_trigger_factory 開始執行更新`);
-        await apiExecute(`${API_BASE_URL}/tool/update_trigger_factory`);
+        console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
+        await apiExecute(`${API_BASE_URL}/tool/insert_trigger_factory`);
         
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);

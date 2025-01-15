@@ -40,24 +40,41 @@ const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
 
-router.get('/update_trigger_factory', async (req, res) => {
-
+router.get('/insert_trigger_factory', async (req, res) => {
     try {
         const pool = await mysqlConnection(getDbConfig('aoi'));
-        const sqlStr = `SELECT * FROM aoi_spec`;
-        const result = await queryFunc(pool, sqlStr);
-        const partNoList = result.map(item => `'${item.part_no}'`).join(',');
-        const sqlStrDetail = `SELECT distinct part_no,factory FROM aoi_yield_defect WHERE part_no IN (${partNoList}) order by part_no,factory`;
-        // console.log(sqlStrDetail);
+        const sqlStrDetail = `
+        SELECT distinct 
+            a.part_no,
+            a.factory,
+            CASE WHEN s.target IS NULL THEN '1' ELSE s.target END AS target,
+            CASE WHEN s.triger IS NULL THEN '1' ELSE s.triger END AS triger,
+            CASE WHEN s.isdelete IS NULL THEN 'false' ELSE s.isdelete END AS isdelete,
+            CASE WHEN s.creator IS NULL THEN 'SYSTEM' ELSE s.creator END AS creator 
+        FROM aoi_yield_defect a 
+            left join 
+                aoi_spec s on a.part_no = s.part_no 
+            WHERE 
+                s.part_no is null
+            or 
+                s.factory is null
+            `;
         const resultDetail = await queryFunc(pool, sqlStrDetail);
-        result.forEach(item => {
-            item.factory = resultDetail.filter(r => r.part_no === item.part_no).map(r => `${r.factory}`).join(',');
+        
+        const sqlStrUpdate = `
+            INSERT INTO aoi_spec (part_no, factory, isdelete, target, triger, creator) 
+            VALUES (?, ?, 'false', ?, ?, ?) 
+            ON DUPLICATE KEY UPDATE 
+            factory = VALUES(factory),
+            isdelete = VALUES(isdelete),
+            target = VALUES(target),
+            triger = VALUES(triger),
+            creator = VALUES(creator)
+        `;
 
-        });
-        const sqlStrUpdate = `UPDATE aoi_spec SET factory = ? WHERE part_no = ?`;
-        result.forEach(item => {
-            queryFunc(pool, sqlStrUpdate, [item.factory, item.part_no]);
-        });
+        for (const item of resultDetail) {
+            await queryFunc(pool, sqlStrUpdate, [item.part_no, item.factory, item.target, item.triger, item.creator]);
+        }
 
         res.status(200).json({
             status: 'success',
