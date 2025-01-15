@@ -62,13 +62,13 @@ router.get('/aoi-spec', async (req, res) => {
 });
 
 router.post('/aoi-spec', async (req, res) => {
-    const { part_no, target,triger,creator } = req.body;
+    const { part_no, target,triger,creator,factory } = req.body;
     // console.log(uid);
     const pool = await mysqlConnection(getDbConfig('aoi'));
     try {
         const sqlStr = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}'`;
         const result = await queryFunc(pool, sqlStr);
-        const sqlStradd = `INSERT INTO aoi_spec (part_no, target, triger,creator,isdelete) VALUES ('${part_no}', '${target}', '${triger}','${creator}','false')`;
+        const sqlStradd = `INSERT INTO aoi_spec (part_no, target, triger,creator,isdelete,factory) VALUES ('${part_no}', '${target}', '${triger}','${creator}','false','${factory}')`;
         const resultadd = await queryFunc(pool, sqlStradd);
         res.status(200).json({
             status: 'success',
@@ -86,11 +86,11 @@ router.post('/aoi-spec', async (req, res) => {
     }
 });
 router.delete('/aoi-spec', async (req, res) => {
-    const { part_no } = req.body;
+    const { part_no,factory } = req.body;
     console.log(part_no);
     const pool = await mysqlConnection(getDbConfig('aoi'));
     try {
-        const sqlStr = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}'`;
+        const sqlStr = `UPDATE aoi_spec SET isdelete='true' WHERE part_no = '${part_no}' AND factory = '${factory}'`;
         const result = await queryFunc(pool, sqlStr);
         res.status(200).json({
             status: 'success',

@@ -22,12 +22,30 @@ paths:
                 properties:
                   status:
                     type: string
+                    example: "success"
                   message:
                     type: string
+                    example: "成功"
                   data:
                     type: array
                     items:
                       type: object
+                      properties:
+                        part_no:
+                          type: string
+                          example: "1234567890"
+                        target:
+                          type: string
+                          example: "1"
+                        triger:
+                          type: string
+                          example: "1"
+                        creator:
+                          type: string
+                          example: "SYSTEM"
+                        factory:
+                          type: string
+                          example: "1"
                   time:
                     type: string
                     format: date-time
@@ -59,6 +77,8 @@ paths:
                 target:
                   type: string
                 triger:
+                  type: string
+                factory:
                   type: string
                 creator:
                   type: string

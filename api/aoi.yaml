@@ -1072,8 +1072,10 @@ paths:
                   properties:
                     status:
                       type: string
+                      example: "success"
                     message:
                       type: string
+                      example: "成功"
                     data:
                       type: array
                       items:
@@ -1123,6 +1125,7 @@ paths:
                     type: string
                   message:
                     type: string
+                    example: "成功"
                   time:
                     type: string
                     format: date-time
@@ -1137,6 +1140,7 @@ paths:
                     type: string
                   message:
                     type: string
+                    example: "刪除失敗"
                   time:
                     type: string
                     format: date-time
@@ -1150,7 +1154,8 @@ paths:
                   status:
                     type: string
                   message:
-                    type: 'process_name is necessary'
+                    type: string
+                    example: "process_name is necessary"
                   time:
                     type: string
                     format: date-time
