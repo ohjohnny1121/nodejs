@@ -813,7 +813,8 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         WHERE a.time >= ? 
                         AND a.time <= ? 
                         AND a.factory = ?
-                        and s.isdelete = false`;
+                        and s.isdelete = false
+                        and a.bef_yield<=s.triger`;
 
         const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
@@ -1287,6 +1288,43 @@ router.delete('/process_name/:process_name', async (req, res) => {
             time: getCurrentTimeInTaipei()
         });
     }
+});
+
+router.get('/central_part_no', async (req, res) => {
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    const result = await pool.query(`SELECT * FROM central_part_no WHERE isdelete = false`);
+    res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: result[0],
+        time: getCurrentTimeInTaipei()
+    });
+});
+
+router.post('/central_part_no', async (req, res) => {
+    const { part_no,factory,creator } = req.body;
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    const deleteResult = await pool.query(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
+    const result = await pool.query(`INSERT INTO central_part_no (part_no,factory,creator,isdelete) VALUES (?,?,?,?)`, [part_no,factory,creator,false]);
+    res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: result[0],
+        time: getCurrentTimeInTaipei()
+    });
+});
+
+router.delete('/central_part_no/', async (req, res) => {
+    const { part_no,factory } = req.query;
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    const result = await pool.query(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
+    console.log(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
+    res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: result[0],
+        time: getCurrentTimeInTaipei()
+    });
 });
 
 module.exports = router;
