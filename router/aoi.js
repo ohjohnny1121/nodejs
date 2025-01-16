@@ -1303,6 +1303,7 @@ router.get('/central_part_no', async (req, res) => {
 
 router.post('/central_part_no', async (req, res) => {
     const { part_no,factory,creator } = req.body;
+    console.log(part_no,factory,creator);
     const pool = await mysqlConnection(getDbConfig('aoi'));
     const deleteResult = await pool.query(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
     const result = await pool.query(`INSERT INTO central_part_no (part_no,factory,creator,isdelete) VALUES (?,?,?,?)`, [part_no,factory,creator,false]);
@@ -1314,17 +1315,38 @@ router.post('/central_part_no', async (req, res) => {
     });
 });
 
-router.delete('/central_part_no/', async (req, res) => {
-    const { part_no,factory } = req.query;
-    const pool = await mysqlConnection(getDbConfig('aoi'));
-    const result = await pool.query(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
-    console.log(`update central_part_no set isdelete=true where part_no = '${part_no}' and factory = '${factory}'`);
-    res.status(200).json({
-        status: 'success',
-        message: '成功',
-        data: result[0],
-        time: getCurrentTimeInTaipei()
-    });
+router.delete('/central_part_no/:part_no/:factory', async (req, res) => {
+    const { part_no, factory } = req.params;  // 使用 req.params 而不是 req.query
+    console.log('part_no,factory',part_no,factory);
+    if (!part_no || !factory) {
+        return res.status(400).json({
+            status: 'error',
+            message: '參數不完整：需要 part_no 和 factory',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+
+    try {
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        const result = await pool.query(
+            'UPDATE central_part_no SET isdelete = true WHERE part_no = ? AND factory = ?',
+            [part_no, factory]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result[0],
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('刪除操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '刪除記錄失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
 });
 
 module.exports = router;

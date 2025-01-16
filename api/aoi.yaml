@@ -1192,50 +1192,6 @@ paths:
                   time:
                     type: string
                     format: date-time
-    delete:
-      tags:
-        - central_part_no
-      summary: Delete central part number
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                part_no:
-                  type: string
-                factory:
-                  type: string
-      responses:
-        '200':
-          description: Central part number deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
-        '500':
-          description: Error deleting central part number
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  message:
-                    type: string
-                  time:
-                    type: string
-                    format: date-time
     get:
       tags:
         - central_part_no
@@ -1280,3 +1236,64 @@ paths:
                   time:
                     type: string
                     format: date-time
+  /aoi/central_part_no/{part_no}/{factory}:
+    delete:
+      tags:
+        - central_part_no
+      summary: Delete central part number
+      parameters:
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Central part number deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting central part number
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "參數不完整：需要 part_no 和 factory"
+                  time:
+                    type: string
+                    format: date-time
+
