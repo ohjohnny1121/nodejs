@@ -33,7 +33,7 @@ router.use((req, res, next) => {
 });
 
 const key = 'YMYIP';
-const whiteListAdmin = ['A4378','U00954','10915','09089'];
+const whiteListAdmin = ['A4378','U00954','10915','09089','A4378'];
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());

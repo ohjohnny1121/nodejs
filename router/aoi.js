@@ -763,9 +763,9 @@ router.get('/history/:lot_num', async (req, res) => {
 
 
 // 獲取AOI 每日資料
-router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
+router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res) => {
     try {
-        const { startDate, endDate, factory } = req.params;
+        const { startDate, endDate, factory, isTrigger } = req.params;
 
         if (typeof startDate === 'undefined' || typeof endDate === 'undefined' || typeof factory === 'undefined') {
             return res.status(400).json({
@@ -813,8 +813,8 @@ router.get('/aoidaily/:startDate/:endDate/:factory', async (req, res) => {
                         WHERE a.time >= ? 
                         AND a.time <= ? 
                         AND a.factory = ?
-                        and s.isdelete = false
-                        and a.bef_yield<=s.triger`;
+                        and s.isdelete = 'false'
+                        ${isTrigger ? 'and a.bef_yield<=s.triger' : ''}`;
 
         const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
