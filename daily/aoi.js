@@ -435,7 +435,9 @@ router.get("/trend", async (req, res) => {
         d.defect_code,
         d.side,
         TRIM(b.LayerName) as layer_name,
-        CAST(d.count AS FLOAT) / NULLIF(j.Qnty_S, 0) as defect_rate
+        CAST(d.count AS FLOAT) / NULLIF(j.Qnty_S, 0) as defect_rate,
+        d.count,
+        j.Qnty_S
       FROM 
         DefectCounts d
         INNER JOIN v_pdl_ckhistory j WITH (nolock)
