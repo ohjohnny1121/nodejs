@@ -43,6 +43,9 @@ const key = 'YMYIP';
 const SOAP_TIMEOUT = 30000; // 30秒超時
 
 router.use(bodyParser.json());
+
+
+
 router.get('/factory-list', async (req, res) => {
     try {
         const pool = await mysqlConnection(getDbConfig('common'));
@@ -766,7 +769,7 @@ router.get('/history/:lot_num', async (req, res) => {
 router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res) => {
     try {
         const { startDate, endDate, factory, isTrigger } = req.params;
-
+        console.log(convertTimestampToFormattedDate(startDate), convertTimestampToFormattedDate(endDate), factory, isTrigger);
         if (typeof startDate === 'undefined' || typeof endDate === 'undefined' || typeof factory === 'undefined') {
             return res.status(400).json({
                 status: 'error',
@@ -834,6 +837,111 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
         });
     }
 });
+
+
+
+router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/', async (req, res) => {
+    const { factory, part_no, start_date, end_date } = req.params;
+    console.log(convertTimestampToFormattedDate(start_date),convertTimestampToFormattedDate(end_date));
+
+    try {
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        
+        // 先獲取所有的 defect_code，用於構建動態 PIVOT
+        const sqlDefectCodes = `
+            SELECT DISTINCT defect_code 
+            FROM aoi_lot_defect_rate d
+            WHERE EXISTS (
+                SELECT * 
+                FROM aoi_yield_defect a 
+                WHERE a.lot_num = d.lot_num
+                AND a.factory = ?
+            )
+            ORDER BY defect_code
+        `;
+        
+        
+        const defectCodes = await queryFunc(pool, sqlDefectCodes, [
+            // convertTimestampToFormattedDate(start_date),
+            // convertTimestampToFormattedDate(end_date),
+            factory
+        ]);
+        // res.json(defectCodes);
+        // 構建動態 PIVOT SQL
+        const pivotColumns = defectCodes
+            .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}\``)
+            .join(',\n');
+
+        const sqlStr = `
+            SELECT 
+                a.*,
+                ${pivotColumns}
+            FROM aoi_yield_defect a
+            LEFT JOIN aoi_lot_defect_rate d 
+                ON a.lot_num = d.lot_num
+                and a.layer = d.layer_name
+            WHERE a.time >= ? 
+            AND a.time <= ? 
+            AND a.factory = ?
+            GROUP BY 
+                a.id, 
+                a.lot_num,
+                a.layer,
+                a.factory,
+                a.prod_class,
+                a.part_no,
+                a.lot_type,
+                a.bef_yield,
+                a.yield,
+                a.time,
+                a.c_top_1,
+                a.c_top1,
+                a.c_top_2,
+                a.c_top2,
+                a.c_top_3,
+                a.c_top3,
+                a.s_top_1,
+                a.s_top1,
+                a.s_top_2,
+                a.s_top2,
+                a.s_top_3,
+                a.s_top3,
+                a.remark,
+                a.upp
+            ORDER BY a.time DESC
+        `;
+        // console.log(sqlStr);
+        const result = await queryFunc(pool, sqlStr, [
+            convertTimestampToFormattedDate(start_date),
+            convertTimestampToFormattedDate(end_date),
+            factory
+        ]);
+
+        if (result.length === 0) {
+            return res.status(200).json({
+                status: 'success',
+                message: '成功',
+                data: [],
+                time: getCurrentTimeInTaipei()
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
 
 // 獲取AOI 圖片
 // 建立連線池工廠
