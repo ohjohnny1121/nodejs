@@ -817,7 +817,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
                         AND a.time <= ? 
                         AND a.factory = ?
                         and s.isdelete = 'false'
-                        ${isTrigger ? 'and a.bef_yield<=s.triger' : ''}`;
+                        ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}`;
 
         const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
@@ -842,8 +842,6 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
 //分CS
 router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:isTrigger', async (req, res) => {
     const { factory, part_no, start_date, end_date, isTrigger } = req.params;
-    
-
     try {
         const pool = await mysqlConnection(getDbConfig('aoi'));
         
@@ -888,7 +886,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
-            ${isTrigger ? 'and a.bef_yield<=s.triger' : ''}
+            ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
                 a.lot_num,
@@ -997,7 +995,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
-            ${isTrigger ? 'and a.bef_yield<=s.triger' : ''}
+            ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
                 a.lot_num,
