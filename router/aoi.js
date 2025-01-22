@@ -839,10 +839,10 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
 });
 
 
-//合併一起
+//分CS
 router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/', async (req, res) => {
     const { factory, part_no, start_date, end_date } = req.params;
-    console.log(convertTimestampToFormattedDate(start_date),convertTimestampToFormattedDate(end_date));
+    
 
     try {
         const pool = await mysqlConnection(getDbConfig('aoi'));
@@ -883,6 +883,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/',
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
+            and a.part_no = ?
             GROUP BY 
                 a.id, 
                 a.lot_num,
@@ -914,7 +915,8 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/',
         const result = await queryFunc(pool, sqlStr, [
             convertTimestampToFormattedDate(start_date),
             convertTimestampToFormattedDate(end_date),
-            factory
+            factory,
+            part_no
         ]);
 
         if (result.length === 0) {
@@ -959,17 +961,16 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/', as
                 FROM aoi_yield_defect a 
                 WHERE a.lot_num = d.lot_num
                 AND a.factory = ?
+                AND a.part_no = ?
             )
             ORDER BY defect_code
         `;
         
         
         const defectCodes = await queryFunc(pool, sqlDefectCodes, [
-            // convertTimestampToFormattedDate(start_date),
-            // convertTimestampToFormattedDate(end_date),
-            factory
+            factory,
+            part_no
         ]);
-        // res.json(defectCodes);
         // 構建動態 PIVOT SQL
         const pivotColumns = defectCodes
             .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}\``)
@@ -979,13 +980,19 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/', as
             SELECT 
                 a.*,
                 ${pivotColumns}
+                s.triger,
+                s.target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
+            LEFT JOIN aoi_spec s ON a.part_no = s.part_no
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
+            AND a.part_no = ?
+            and s.isdelete = 'false'
+            ${isTrigger ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
                 a.lot_num,
@@ -1017,7 +1024,8 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/', as
         const result = await queryFunc(pool, sqlStr, [
             convertTimestampToFormattedDate(start_date),
             convertTimestampToFormattedDate(end_date),
-            factory
+            factory,
+            part_no
         ]);
 
         if (result.length === 0) {
