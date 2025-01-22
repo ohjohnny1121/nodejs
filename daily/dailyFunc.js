@@ -156,6 +156,7 @@ const stackAdd = async (api) => {
             throw new APIError(data?.message || '無效的 API 響應');
         }
 
+        const BATCH_SIZE = 1000; // 設定每批次處理的數據量
         const keys = Object.keys(data);
         const results = [];
 
@@ -181,24 +182,37 @@ const stackAdd = async (api) => {
                 matchColumn += ', Remark = Remark';
             }
 
-            const placeholders = '(' + new Array(columns.length).fill('?').join(',') + ')';
-            const sql = `
-                INSERT INTO ${table} (${columns.join(',')}) 
-                VALUES ${placeholders}
-                ON DUPLICATE KEY UPDATE ${matchColumn}
-            `;
-
             try {
-                for (const row of values) {
-                    await addToDB(db, sql, row);
+                let successCount = 0;
+                // 分批處理數據
+                for (let i = 0; i < values.length; i += BATCH_SIZE) {
+                    const batchValues = values.slice(i, i + BATCH_SIZE);
+                    
+                    // 為當前批次生成 placeholders
+                    const placeholders = batchValues.map(() => 
+                        '(' + new Array(columns.length).fill('?').join(',') + ')'
+                    ).join(',');
+
+                    const sql = `
+                        INSERT INTO ${table} (${columns.join(',')}) 
+                        VALUES ${placeholders}
+                        ON DUPLICATE KEY UPDATE ${matchColumn}
+                    `;
+
+                    // 將當前批次的值展平
+                    const flattenedBatchValues = batchValues.flat();
+                    await addToDB(db, sql, flattenedBatchValues);
+                    successCount += batchValues.length;
+                    
+                    // console.log(`${api} ${key} 成功更新第 ${i + 1} 到 ${i + batchValues.length} 筆資料`);
                 }
                 
                 results.push({
                     key,
-                    affectedRows: values.length,
+                    affectedRows: successCount,
                     success: true
                 });
-                console.log(`${api} ${key} 成功更新 ${values.length} 筆資料`);
+                console.log(`${api} ${key} 總共成功更新 ${successCount} 筆資料`);
             } catch (error) {
                 results.push({
                     key,

@@ -395,6 +395,7 @@ router.get("/trend", async (req, res) => {
   try {
     const startDateObj = new Date();
     const endDateObj = new Date();
+    endDateObj.setDate(endDateObj.getDate() + 1);
     startDateObj.setDate(startDateObj.getDate() - 100);
     const startDateStr = startDateObj.toISOString().split('T')[0];
     const endDateStr = endDateObj.toISOString().split('T')[0];
@@ -435,9 +436,7 @@ router.get("/trend", async (req, res) => {
         d.defect_code,
         d.side,
         TRIM(b.LayerName) as layer_name,
-        CAST(d.count AS FLOAT) / NULLIF(j.Qnty_S, 0) as defect_rate,
-        d.count,
-        j.Qnty_S
+        CAST(d.count AS FLOAT) / NULLIF(j.Qnty_S, 0) as defect_rate
       FROM 
         DefectCounts d
         INNER JOIN v_pdl_ckhistory j WITH (nolock)
