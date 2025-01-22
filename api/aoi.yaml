@@ -1297,3 +1297,209 @@ paths:
                     type: string
                     format: date-time
 
+  /aoi/daily_data_all_defect_CS/{factory}/{part_no}/{start_date}/{end_date}/{isTrigger}:
+    get:
+      tags:
+        - AOI Data
+      summary: 獲取按照 C/S 分類的缺陷代碼統計數據（包含最新和最舊記錄）
+      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION 自動去除重複數據
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: 工廠代碼
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+        - in: path
+          name: start_date
+          required: true
+          schema:
+            type: string
+          description: 開始日期時間戳
+        - in: path
+          name: end_date
+          required: true
+          schema:
+            type: string
+          description: 結束日期時間戳
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: 是否只顯示觸發值以下的數據 (0 或 1)
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    description: 按時間降序排序的記錄列表
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        lot_num:
+                          type: string
+                        layer:
+                          type: string
+                        factory:
+                          type: string
+                        prod_class:
+                          type: string
+                        part_no:
+                          type: string
+                        bef_yield:
+                          type: number
+                        yield:
+                          type: number
+                        time:
+                          type: string
+                        triger:
+                          type: number
+                        target:
+                          type: number
+                        # 動態生成的缺陷代碼欄位
+                        defect_codes:
+                          type: object
+                          description: 動態生成的缺陷代碼統計數據
+                          additionalProperties:
+                            type: number
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/daily_data_all_defect/{factory}/{part_no}/{start_date}/{end_date}/{isTrigger}/{count}:
+    get:
+      tags:
+        - AOI Data
+      summary: 獲取所有缺陷代碼統計數據
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: 工廠代碼
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+        - in: path
+          name: start_date
+          required: true
+          schema:
+            type: string
+          description: 開始日期時間戳
+        - in: path
+          name: end_date
+          required: true
+          schema:
+            type: string
+          description: 結束日期時間戳
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: 是否只顯示觸發值以下的數據 (0 或 1)
+        - in: path
+          name: count
+          required: true
+          schema:
+            type: string
+          description: 返回的數據數量，前n筆和後n筆，填0則返回所有數據
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        lot_num:
+                          type: string
+                        layer:
+                          type: string
+                        factory:
+                          type: string
+                        prod_class:
+                          type: string
+                        part_no:
+                          type: string
+                        bef_yield:
+                          type: number
+                        yield:
+                          type: number
+                        time:
+                          type: string
+                        triger:
+                          type: number
+                        target:
+                          type: number
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
