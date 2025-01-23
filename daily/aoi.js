@@ -486,4 +486,162 @@ router.get("/example", async (req, res) => {
     }
 });
 
+// daily資料分defect_code CS
+router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:isTrigger', async (req, res) => {
+    const { factory, part_no, start_date, end_date, isTrigger } = req.params;
+    const limit = Number(req.query.limit) || 1000;
+    
+    try {
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        
+        // 先獲取所有的 defect_code
+        const sqlDefectCodes = `
+            SELECT DISTINCT defect_code, side
+            FROM aoi_lot_defect_rate d
+            WHERE EXISTS (
+                SELECT 1 
+                FROM aoi_yield_defect a 
+                WHERE a.lot_num = d.lot_num
+                AND a.factory = ?
+                AND a.part_no = ?
+            )
+            ORDER BY defect_code, side
+        `;
+        
+        const defectCodes = await queryFunc(pool, sqlDefectCodes, [factory, part_no]);
+        const pivotColumns = defectCodes
+            .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' AND d.side = '${d.side}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}_${d.side}\``)
+            .join(',\n');
+
+        // 使用 UNION 合併最新和最舊的記錄
+        const sqlStr = `
+            (
+                SELECT 
+                    a.id,
+                    a.lot_num,
+                    a.layer,
+                    a.factory,
+                    a.prod_class,
+                    a.part_no,
+                    a.lot_type,
+                    a.bef_yield,
+                    a.yield,
+                    a.time,
+                    a.c_top_1,
+                    a.c_top1,
+                    a.c_top_2,
+                    a.c_top2,
+                    a.c_top_3,
+                    a.c_top3,
+                    a.s_top_1,
+                    a.s_top1,
+                    a.s_top_2,
+                    a.s_top2,
+                    a.s_top_3,
+                    a.s_top3,
+                    a.remark,
+                    a.upp,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+                FROM aoi_yield_defect a
+                LEFT JOIN aoi_lot_defect_rate d 
+                    ON a.lot_num = d.lot_num
+                    AND a.layer = d.layer_name
+                LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+                WHERE a.time >= ? 
+                AND a.time <= ? 
+                AND a.factory = ?
+                AND a.part_no = ?
+                AND s.isdelete = 'false'
+                ${Number(isTrigger) ? 'AND a.bef_yield <= s.triger' : ''}
+                GROUP BY 
+                    a.id, a.lot_num, a.layer, a.factory, a.prod_class,
+                    a.part_no, a.lot_type, a.bef_yield, a.yield, a.time,
+                    a.c_top_1, a.c_top1, a.c_top_2, a.c_top2, a.c_top_3,
+                    a.c_top3, a.s_top_1, a.s_top1, a.s_top_2, a.s_top2,
+                    a.s_top_3, a.s_top3, a.remark, a.upp
+                ORDER BY a.time DESC
+                LIMIT ${Math.ceil(limit/2)}
+            )
+            UNION
+            (
+                SELECT 
+                    a.id,
+                    a.lot_num,
+                    a.layer,
+                    a.factory,
+                    a.prod_class,
+                    a.part_no,
+                    a.lot_type,
+                    a.bef_yield,
+                    a.yield,
+                    a.time,
+                    a.c_top_1,
+                    a.c_top1,
+                    a.c_top_2,
+                    a.c_top2,
+                    a.c_top_3,
+                    a.c_top3,
+                    a.s_top_1,
+                    a.s_top1,
+                    a.s_top_2,
+                    a.s_top2,
+                    a.s_top_3,
+                    a.s_top3,
+                    a.remark,
+                    a.upp,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+                FROM aoi_yield_defect a
+                LEFT JOIN aoi_lot_defect_rate d 
+                    ON a.lot_num = d.lot_num
+                    AND a.layer = d.layer_name
+                LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+                WHERE a.time >= ? 
+                AND a.time <= ? 
+                AND a.factory = ?
+                AND a.part_no = ?
+                AND s.isdelete = 'false'
+                ${Number(isTrigger) ? 'AND a.bef_yield <= s.triger' : ''}
+                GROUP BY 
+                    a.id, a.lot_num, a.layer, a.factory, a.prod_class,
+                    a.part_no, a.lot_type, a.bef_yield, a.yield, a.time,
+                    a.c_top_1, a.c_top1, a.c_top_2, a.c_top2, a.c_top_3,
+                    a.c_top3, a.s_top_1, a.s_top1, a.s_top_2, a.s_top2,
+                    a.s_top_3, a.s_top3, a.remark, a.upp
+                ORDER BY a.time ASC
+                LIMIT ${Math.ceil(limit/2)}
+            )
+            ORDER BY time DESC
+        `;
+
+        const result = await queryFunc(pool, sqlStr, [
+            convertTimestampToFormattedDate(start_date),
+            convertTimestampToFormattedDate(end_date),
+            factory,
+            part_no,
+            convertTimestampToFormattedDate(start_date),
+            convertTimestampToFormattedDate(end_date),
+            factory,
+            part_no
+        ]);
+
+        res.status(200).json({
+            status: 'success',
+            message: '成功',
+            data: result,
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
 module.exports = router;

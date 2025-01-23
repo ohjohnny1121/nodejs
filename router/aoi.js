@@ -817,7 +817,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
                         AND a.time <= ? 
                         AND a.factory = ?
                         and s.isdelete = 'false'
-                        ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}`;
+                        ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}`;
 
         const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
@@ -839,7 +839,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
 });
 
 
-//分CS
+//daily資料分defect_code CS
 router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:isTrigger', async (req, res) => {
     const { factory, part_no, start_date, end_date, isTrigger } = req.params;
     try {
@@ -875,7 +875,9 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
         const sqlStr = `
             SELECT 
                 a.*,
-                ${pivotColumns}
+                ${pivotColumns},
+                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
@@ -886,7 +888,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
-            ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}
+            ${Number(isTrigger) ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
                 a.lot_num,
@@ -947,9 +949,9 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
     }
 });
 
-
-router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTrigger', async (req, res) => {
-    const { factory, part_no, start_date, end_date, isTrigger } = req.params;
+//daily資料分defect_code
+router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTrigger/:count', async (req, res) => {
+    const { factory, part_no, start_date, end_date, isTrigger, count } = req.params;
     console.log(convertTimestampToFormattedDate(start_date),convertTimestampToFormattedDate(end_date));
 
     try {
@@ -979,7 +981,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}\``)
             .join(',\n');
 
-        const sqlStr = `
+        const sqlStrDesc = `
             SELECT 
                 a.*,
                 ${pivotColumns},
@@ -995,7 +997,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
-            ${Number(isTrigger) === 1 ? 'and a.bef_yield<=s.triger' : ''}
+            ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
                 a.lot_num,
@@ -1022,14 +1024,76 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 a.remark,
                 a.upp
             ORDER BY a.time DESC
+            ${Number(count) ? `LIMIT ${count}` : ''}
         `;
-        // console.log(sqlStr);
-        const result = await queryFunc(pool, sqlStr, [
+        const resultDesc = await queryFunc(pool, sqlStrDesc, [
             convertTimestampToFormattedDate(start_date),
             convertTimestampToFormattedDate(end_date),
             factory,
             part_no
         ]);
+        const lot_nums = resultDesc.map(item => `'${item.lot_num}'`).join(',');
+
+
+        const sqlStrAsc = `
+            SELECT 
+                a.*,
+                ${pivotColumns},
+                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            FROM aoi_yield_defect a
+            LEFT JOIN aoi_lot_defect_rate d 
+                ON a.lot_num = d.lot_num
+                and a.layer = d.layer_name
+            LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            WHERE a.time >= ? 
+            AND a.time <= ? 
+            AND a.factory = ?
+            AND a.part_no = ?
+            and s.isdelete = 'false'
+            and a.lot_num not in (${lot_nums})
+            ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}
+            GROUP BY 
+                a.id, 
+                a.lot_num,
+                a.layer,
+                a.factory,
+                a.prod_class,
+                a.part_no,
+                a.lot_type,
+                a.bef_yield,
+                a.yield,
+                a.time,
+                a.c_top_1,
+                a.c_top1,
+                a.c_top_2,
+                a.c_top2,
+                a.c_top_3,
+                a.c_top3,
+                a.s_top_1,
+                a.s_top1,
+                a.s_top_2,
+                a.s_top2,
+                a.s_top_3,
+                a.s_top3,
+                a.remark,
+                a.upp
+            ORDER BY a.time ASC
+            ${Number(count) ? `LIMIT ${count}` : ''}
+        `;
+
+
+
+        
+        const resultAsc = await queryFunc(pool, sqlStrAsc, [
+            convertTimestampToFormattedDate(start_date),
+            convertTimestampToFormattedDate(end_date),
+            factory,
+            part_no
+        ]);
+        const result = [...new Set([...resultDesc, ...resultAsc])].sort((a, b) => a.time - b.time);
+        
+        
 
         if (result.length === 0) {
             return res.status(200).json({
