@@ -1302,7 +1302,7 @@ paths:
       tags:
         - AOI Data
       summary: 獲取按照 C/S 分類的缺陷代碼統計數據（包含最新和最舊記錄）
-      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION 自動去除重複數據
+      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION自動去除重複數據
       parameters:
         - in: path
           name: factory
