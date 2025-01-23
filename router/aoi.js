@@ -817,7 +817,9 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
                         AND a.time <= ? 
                         AND a.factory = ?
                         and s.isdelete = 'false'
-                        ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}`;
+                        ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}
+                        ORDER BY a.time ASC
+                        `;
 
         const result = await queryFunc(pool, sqlStr, [convertTimestampToFormattedDate(startTimestamp), convertTimestampToFormattedDate(endTimestamp), factory]);
         
