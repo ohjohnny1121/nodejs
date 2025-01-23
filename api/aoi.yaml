@@ -453,7 +453,7 @@ paths:
                     type: string
                     format: date-time
 
-  /aoi/aoidaily/{startDate}/{endDate}/{factory}:
+  /aoi/aoidaily/{startDate}/{endDate}/{factory}/{isTrigger}:
     get:
       tags:
         - AOI Data
@@ -477,6 +477,12 @@ paths:
           schema:
             type: string
           description: Factory identifier
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: Trigger identifier
       responses:
         '200':
           description: Daily AOI data retrieved successfully
