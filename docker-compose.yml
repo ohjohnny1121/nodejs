@@ -1,4 +1,3 @@
-version: '3'
 services:
   
   mysql:
@@ -20,15 +19,19 @@ services:
       MYSQL_MAX_CONNECTIONS: 1000
       MYSQL_THREAD_CACHE_SIZE: 128
 
-
     volumes:
-      - /d/sn-mysql:/var/lib/mysql  # 本地 SSD 位置
+      - mysql-data:/var/lib/mysql  # 改用命名卷
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
     ports:
       - "3306:3306"
     restart: always
+    healthcheck:  # 添加健康檢查
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
@@ -52,7 +55,8 @@ services:
       - "UTCSNCIMDB:10.23.65.44"
 
     depends_on:
-      - mysql
+      mysql:  # 確保 MySQL 健康後才啟動 API
+        condition: service_healthy
     networks:
       - app-network
     restart: always
@@ -65,13 +69,15 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - app-network
     restart: always
 
 volumes:
-  mysql-data:  # 用於將 MySQL 資料存放於 SSD 的位置
+  mysql-data:  # 使用命名卷
 
 networks:
   app-network:
+    driver: bridge
