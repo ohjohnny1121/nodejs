@@ -91,7 +91,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   Bga: {
-    server: "Utcsycimdw01",
+    // server: "Utcsycimdw01",
+    server: "10.30.40.86",
     user: "Pc_user",
     password: "Aa12345",
     database: "bga_eda",
@@ -115,7 +116,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   SNAcme: {
-    server: "UTCSNACMLSNR",
+    // server: "UTCSNACMLSNR",
+    server: "10.23.65.44",
     user: "dc_read",
     password: "ewFJ9%(4",
     database: "acme",
@@ -123,7 +125,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   SNDc: {
-    server: "UTCSNACMLSNR",
+    // server: "UTCSNACMLSNR",
+    server: "10.23.65.44",
     user: "dc_read",
     password: "ewFJ9%(4",
     database: "dc",
@@ -131,7 +134,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   SNNCN:{
-    server: "UTCSNCIMDB",
+    // server: "UTCSNCIMDB",
+    server: "10.23.65.44",
     user: "snyip",
     password: "sq4NM$*0",
     database: "NCN",
