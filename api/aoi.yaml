@@ -1302,7 +1302,7 @@ paths:
       tags:
         - AOI Data
       summary: 獲取按照 C/S 分類的缺陷代碼統計數據（包含最新和最舊記錄）
-      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION 自動去除重複數據
+      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION自動去除重複數據
       parameters:
         - in: path
           name: factory
@@ -1406,6 +1406,7 @@ paths:
       tags:
         - AOI Data
       summary: 獲取所有缺陷代碼統計數據
+      description: 根據指定的數量返回最新和最舊的記錄，當count為0時返回所有記錄
       parameters:
         - in: path
           name: factory
@@ -1441,8 +1442,9 @@ paths:
           name: count
           required: true
           schema:
-            type: string
-          description: 返回的數據數量，前n筆和後n筆，填0則返回所有數據
+            type: integer
+            minimum: 0
+          description: 返回的數據數量，當為0時返回所有數據，大於0時返回最新和最舊的各count筆數據
       responses:
         '200':
           description: 成功獲取數據
@@ -1484,6 +1486,11 @@ paths:
                           type: number
                         target:
                           type: number
+                        defect_codes:
+                          type: object
+                          description: 動態生成的缺陷代碼統計數據
+                          additionalProperties:
+                            type: number
                   time:
                     type: string
                     format: date-time
