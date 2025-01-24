@@ -916,7 +916,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
                 a.s_top3,
                 a.remark,
                 a.upp
-            ORDER BY a.time DESC
+            ORDER BY a.time ASC
         `;
         // console.log(sqlStr);
         const result = await queryFunc(pool, sqlStr, [
@@ -983,7 +983,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}\``)
             .join(',\n');
 
-        const sqlStrDesc = `
+        const sqlStrMax = `
             SELECT 
                 a.*,
                 ${pivotColumns},
@@ -995,7 +995,6 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
             WHERE a.time >= ? 
-            AND a.time <= ? 
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
@@ -1028,16 +1027,16 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             ORDER BY a.time DESC
             ${Number(count) ? `LIMIT ${count}` : ''}
         `;
-        const resultDesc = await queryFunc(pool, sqlStrDesc, [
-            convertTimestampToFormattedDate(start_date),
+        const resultMax = await queryFunc(pool, sqlStrMax, [
+            // convertTimestampToFormattedDate(start_date),
             convertTimestampToFormattedDate(end_date),
             factory,
             part_no
         ]);
-        const lot_nums = resultDesc.map(item => `'${item.lot_num}'`).join(',');
+        // const lot_nums = resultMax.map(item => `'${item.lot_num}'`).join(',');
 
 
-        const sqlStrAsc = `
+        const sqlStrMin = `
             SELECT 
                 a.*,
                 ${pivotColumns},
@@ -1048,12 +1047,10 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-            WHERE a.time >= ? 
-            AND a.time <= ? 
+            WHERE a.time <= ? 
             AND a.factory = ?
             AND a.part_no = ?
             and s.isdelete = 'false'
-            and a.lot_num not in (${lot_nums})
             ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}
             GROUP BY 
                 a.id, 
@@ -1087,13 +1084,64 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
 
 
         
-        const resultAsc = await queryFunc(pool, sqlStrAsc, [
+        const resultMin = await queryFunc(pool, sqlStrMin, [
+            convertTimestampToFormattedDate(start_date),
+            factory,
+            part_no
+        ]);
+
+        const sqlStrMid = `
+            SELECT 
+                a.*,
+                ${pivotColumns},
+                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            FROM aoi_yield_defect a
+            LEFT JOIN aoi_lot_defect_rate d 
+                ON a.lot_num = d.lot_num
+                and a.layer = d.layer_name
+            LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            WHERE a.time >= ? 
+            AND a.time <= ? 
+            AND a.factory = ?
+            AND a.part_no = ?
+            and s.isdelete = 'false'
+            ${Number(isTrigger)  ? 'and a.bef_yield<=s.triger' : ''}
+            GROUP BY 
+                a.id, 
+                a.lot_num,
+                a.layer,
+                a.factory,
+                a.prod_class,
+                a.part_no,
+                a.lot_type,
+                a.bef_yield,
+                a.yield,
+                a.time,
+                a.c_top_1,
+                a.c_top1,
+                a.c_top_2,
+                a.c_top2,
+                a.c_top_3,
+                a.c_top3,
+                a.s_top_1,
+                a.s_top1,
+                a.s_top_2,
+                a.s_top2,
+                a.s_top_3,
+                a.s_top3,
+                a.remark,
+                a.upp
+            ORDER BY a.time ASC
+        `;
+        const resultMid = await queryFunc(pool, sqlStrMid, [
             convertTimestampToFormattedDate(start_date),
             convertTimestampToFormattedDate(end_date),
             factory,
             part_no
         ]);
-        const result = [...new Set([...resultDesc, ...resultAsc])].sort((a, b) => a.time - b.time);
+
+        const result = [...new Set([...resultMax, ...resultMin, ...resultMid])].sort((a, b) => a.time - b.time);
         
         
 
