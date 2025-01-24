@@ -57,7 +57,9 @@ function convertTimestampToFormattedDate(input) {
         throw new Error('Invalid timestamp');
     }
 
-    const date = new Date(timestamp);
+    // 將時間戳加上 8 小時（8 小時 = 8 * 60 * 60 * 1000 毫秒）
+    const adjustedTimestamp = timestamp + (8 * 60 * 60 * 1000);
+    const date = new Date(adjustedTimestamp);
     const year = date.getUTCFullYear(); // 使用 UTC 年份
     const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // 使用 UTC 月份
     const day = String(date.getUTCDate()).padStart(2, '0'); // 使用 UTC 日期
