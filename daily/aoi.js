@@ -396,7 +396,7 @@ router.get("/trend", async (req, res) => {
     const startDateObj = new Date();
     const endDateObj = new Date();
     endDateObj.setDate(endDateObj.getDate() + 1);
-    startDateObj.setDate(startDateObj.getDate() - 100);
+    startDateObj.setDate(startDateObj.getDate() - 150);
     const startDateStr = startDateObj.toISOString().split('T')[0];
     const endDateStr = endDateObj.toISOString().split('T')[0];
 
