@@ -43,7 +43,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() -90);
+      startTime.setDate(startTime.getDate() -150);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -129,6 +129,8 @@ const sqlSnReadOut = `
     
       const snvrs = `SELECT 
         Left(V.PartNum,7)PartNo,
+        V.PartNum part_num,
+        V.Revision revision,
         V.LotType,
         X.LotNum,
         V.Layer,
@@ -238,13 +240,13 @@ const sqlSnReadOut = `
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
-          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}~${r.Qnty_S}`
+          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}~${r.Qnty_S}~${r.part_num}~${r.revision}`
         )
       )];
-  
+      // res.json(lot_layer_qty);
       // 處理每個批次的資料
       lot_layer_qty.forEach((i) => {
-        const [PartNo, LotNum, LayerName, LayerType, LotType, upp, ChangeTime, ProdClass,Qnty_S] = i.split("~");
+        const [PartNo, LotNum, LayerName, LayerType, LotType, upp, ChangeTime, ProdClass,Qnty_S,part_num,revision] = i.split("~");
         const Obj = {};
   
         const filterData = rawData.filter(r => 
@@ -347,6 +349,8 @@ const sqlSnReadOut = `
           Factory: snReadOutResult.recordset.find(i => i.lotnum.trim() === LotNum).Factory,
           // triger,
           upp:upp,
+          part_num,
+          revision,
           // MpLtX: mpLtX,
           // MpLtY: mpLtY,
         });
