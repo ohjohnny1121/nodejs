@@ -53,10 +53,10 @@ cron.schedule('00 00 * * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('15 24 9 * * *', async () => {
+cron.schedule('50 02 14 * * *', async () => {
     try {
-        // console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
-        // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
