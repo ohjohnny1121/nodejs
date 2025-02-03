@@ -43,7 +43,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() -150);
+      startTime.setDate(startTime.getDate() -10);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
