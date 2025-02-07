@@ -788,6 +788,8 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
         const sqlStr = `SELECT 
                         a.factory,
                         a.prod_class,
+                        a.device_name,
+                        p.platform,
                         a.part_no,
                         a.lot_num,
                         a.layer,
@@ -813,6 +815,7 @@ router.get('/aoidaily/:startDate/:endDate/:factory/:isTrigger', async (req, res)
                         s.target
                         FROM aoi_yield_defect a
                         LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+                        LEFT JOIN platform p ON a.part_no = p.part_no
                         WHERE a.time >= ? 
                         AND a.time <= ? 
                         AND a.factory = ?
@@ -878,6 +881,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
             SELECT 
                 a.*,
                 ${pivotColumns},
+                p.platform,
                 AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
                 AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
@@ -885,6 +889,7 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
@@ -986,6 +991,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
         const sqlStrMax = `
             SELECT 
                 a.*,
+                p.platform,
                 ${pivotColumns},
                 AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
                 AVG(CAST(s.target AS DECIMAL(10,2))) AS target
@@ -994,6 +1000,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time > ? 
             AND a.factory = ?
             AND a.part_no = ?
@@ -1039,6 +1046,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
         const sqlStrMin = `
             SELECT 
                 a.*,
+                p.platform,
                 ${pivotColumns},
                 AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
                 AVG(CAST(s.target AS DECIMAL(10,2))) AS target
@@ -1047,6 +1055,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time < ? 
             AND a.factory = ?
             AND a.part_no = ?
@@ -1093,6 +1102,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
         const sqlStrMid = `
             SELECT 
                 a.*,
+                p.platform,
                 ${pivotColumns},
                 AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
                 AVG(CAST(s.target AS DECIMAL(10,2))) AS target
@@ -1101,6 +1111,7 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
+            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
