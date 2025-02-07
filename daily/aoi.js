@@ -512,7 +512,7 @@ dt as (SELECT
     count(*) as total
 FROM p
 GROUP BY PartNum,Revision)
-select PartNum as part_num,0 as isdelete,Revision,'System' as creator,
+select PartNum as part_no,0 as isdelete,Revision,'System' as creator,
 	case when total>2  then (case when core>0 then 'Multi Layer Core' else '14通' end) else (case when total=1 then 'non-capping' else (case when core=0 then '14通' else 'capping' end) end)end as platform
 	
  from dt`;
@@ -527,17 +527,17 @@ select PartNum as part_num,0 as isdelete,Revision,'System' as creator,
     const pool = await mysqlConnection(getDbConfig('aoi'));
     const sqlplatform = `SELECT * FROM platform WHERE isdelete = 0`;
     const platformResult = await queryFunc(pool, sqlplatform);
-    const platformAry = platformResult.map(i=>i.part_num);
+    const platformAry = platformResult.map(i=>i.part_no);
     
 
     result.recordset.forEach(i=>{
-      if(carAry.includes(i.part_num+i.Revision)){
+      if(carAry.includes(i.part_no+i.Revision)){
         i.platform = '車用';
       }
-      if(S3CarAry.includes(i.part_num+i.Revision)){
+      if(S3CarAry.includes(i.part_no+i.Revision)){
         i.platform = '車用';
       }
-      i.part_num=i.part_num.slice(0,7);
+      i.part_no=i.part_no.slice(0,7);
       delete i.Revision;
     });
     function removeDuplicates(array, key) {
@@ -551,7 +551,7 @@ select PartNum as part_num,0 as isdelete,Revision,'System' as creator,
           return false;
       });
     }
-    const uniqueResult = removeDuplicates(result.recordset, 'part_num').filter(i=>!platformAry.includes(i.part_num));
+    const uniqueResult = removeDuplicates(result.recordset, 'part_no').filter(i=>!platformAry.includes(i.part_no));
       res.json({
         daily: {
           data: uniqueResult,
