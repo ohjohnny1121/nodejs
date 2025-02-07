@@ -1516,3 +1516,146 @@ paths:
                     type: string
                     format: date-time
 
+  /aoi/platform:
+    get:
+      tags:
+        - platform
+      summary: 獲取平台資料
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_num:
+                          type: string
+                        platform:
+                          type: string
+                        creator:
+                          type: string
+                        isdelete:
+                          type: boolean
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    post:
+      tags:
+        - platform
+      summary: 新增平台資料
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_num:
+                  type: string
+                platform:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: 成功新增資料
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/platform/{part_num}:
+    delete:
+      tags:
+        - platform
+      summary: 刪除平台資料
+      parameters:
+        - in: path
+          name: part_num
+          required: true
+          schema:
+            type: string
+          description: 料號
+      responses:
+        '200':
+          description: 成功刪除資料
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
