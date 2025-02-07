@@ -878,18 +878,17 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
             .join(',\n');
 
         const sqlStr = `
-            SELECT 
-                a.*,
-                ${pivotColumns},
-                p.platform,
-                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            with aoi_yield_defect_pivot as (
+                SELECT 
+                    a.*,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
@@ -920,7 +919,9 @@ router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:i
                 a.s_top_3,
                 a.s_top3,
                 a.remark,
-                a.upp
+                a.upp)
+            SELECT * FROM aoi_yield_defect_pivot a
+            LEFT JOIN platform p ON a.part_no = p.part_no
             ORDER BY a.time ASC
         `;
         // console.log(sqlStr);
@@ -989,18 +990,17 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
             .join(',\n');
 
         const sqlStrMax = `
-            SELECT 
-                a.*,
-                p.platform,
-                ${pivotColumns},
-                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            with aoi_yield_defect_pivot as (
+                SELECT 
+                    a.*,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time > ? 
             AND a.factory = ?
             AND a.part_no = ?
@@ -1028,9 +1028,12 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 a.s_top_2,
                 a.s_top2,
                 a.s_top_3,
-                a.s_top3,
-                a.remark,
-                a.upp
+                    a.s_top3,
+                    a.remark,
+                    a.upp
+                )
+            SELECT a.*,p.platform FROM aoi_yield_defect_pivot a
+            LEFT JOIN platform p ON a.part_no = p.part_no
             ORDER BY a.time ASC
             ${Number(count) ? `LIMIT ${count}` : ''}
         `;
@@ -1044,18 +1047,17 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
 
 
         const sqlStrMin = `
-            SELECT 
-                a.*,
-                p.platform,
-                ${pivotColumns},
-                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            with aoi_yield_defect_pivot as (
+                SELECT 
+                    a.*,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time < ? 
             AND a.factory = ?
             AND a.part_no = ?
@@ -1081,11 +1083,14 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 a.s_top_1,
                 a.s_top1,
                 a.s_top_2,
-                a.s_top2,
-                a.s_top_3,
-                a.s_top3,
-                a.remark,
-                a.upp
+                    a.s_top2,
+                    a.s_top_3,
+                    a.s_top3,
+                    a.remark,
+                    a.upp
+                )
+            SELECT a.*,p.platform FROM aoi_yield_defect_pivot a
+            LEFT JOIN platform p ON a.part_no = p.part_no
             ORDER BY a.time DESC
             ${Number(count) ? `LIMIT ${count}` : ''}
         `;
@@ -1100,18 +1105,17 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
         ]);
 
         const sqlStrMid = `
-            SELECT 
-                a.*,
-                p.platform,
-                ${pivotColumns},
-                AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                AVG(CAST(s.target AS DECIMAL(10,2))) AS target
+            with aoi_yield_defect_pivot as (
+                SELECT 
+                    a.*,
+                    ${pivotColumns},
+                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
+                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
             FROM aoi_yield_defect a
             LEFT JOIN aoi_lot_defect_rate d 
                 ON a.lot_num = d.lot_num
                 and a.layer = d.layer_name
             LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-            LEFT JOIN platform p ON a.part_no = p.part_no
             WHERE a.time >= ? 
             AND a.time <= ? 
             AND a.factory = ?
@@ -1143,6 +1147,9 @@ router.get('/daily_data_all_defect/:factory/:part_no/:start_date/:end_date/:isTr
                 a.s_top3,
                 a.remark,
                 a.upp
+                )
+            SELECT a.*,p.platform FROM aoi_yield_defect_pivot a
+            LEFT JOIN platform p ON a.part_no = p.part_no
             ORDER BY a.time ASC
         `;
         const resultMid = await queryFunc(pool, sqlStrMid, [
