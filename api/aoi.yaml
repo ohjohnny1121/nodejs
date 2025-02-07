@@ -1540,7 +1540,7 @@ paths:
                     items:
                       type: object
                       properties:
-                        part_num:
+                        part_no:
                           type: string
                         platform:
                           type: string
@@ -1577,7 +1577,7 @@ paths:
             schema:
               type: object
               properties:
-                part_num:
+                part_no:
                   type: string
                 platform:
                   type: string
@@ -1615,14 +1615,14 @@ paths:
                   time:
                     type: string
                     format: date-time
-  /aoi/platform/{part_num}:
+  /aoi/platform/{part_no}:
     delete:
       tags:
         - platform
       summary: 刪除平台資料
       parameters:
         - in: path
-          name: part_num
+          name: part_no
           required: true
           schema:
             type: string

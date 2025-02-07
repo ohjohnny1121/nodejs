@@ -1719,11 +1719,11 @@ router.get('/platform', async (req, res) => {
 });
 
 router.post('/platform', async (req, res) => {
-    const { part_num, platform, creator } = req.body;
-    console.log(part_num, platform, creator);
+    const { part_no, platform, creator } = req.body;
+    console.log(part_no, platform, creator);
     const pool = await mysqlConnection(getDbConfig('aoi'));
-    const deleteResult = await pool.query(`update platform set isdelete=true where part_num = '${part_num}'`);
-    const result = await pool.query(`INSERT INTO platform (part_num, platform, creator) VALUES (?, ?, ?)`, [part_num, platform, creator]);
+    const deleteResult = await pool.query(`update platform set isdelete=true where part_no = '${part_no}'`);
+    const result = await pool.query(`INSERT INTO platform (part_no, platform, creator) VALUES (?, ?, ?)`, [part_no, platform, creator]);
     res.status(200).json({
         status: 'success',
         message: '成功',
@@ -1732,12 +1732,12 @@ router.post('/platform', async (req, res) => {
     });
 });
 
-router.delete('/platform/:part_num', async (req, res) => {
+router.delete('/platform/:part_no', async (req, res) => {
     try {
-        const { part_num } = req.params;
-        console.log('part_num',part_num);
+        const { part_no } = req.params;
+        console.log('part_no',part_no);
         const pool = await mysqlConnection(getDbConfig('aoi'));
-        const result = await pool.query(`update platform set isdelete = true where part_num = '${part_num}'`);
+        const result = await pool.query(`update platform set isdelete = true where part_no = '${part_no}'`);
         res.status(200).json({
             status: 'success',
             message: '成功',
