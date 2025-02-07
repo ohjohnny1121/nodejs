@@ -1684,4 +1684,39 @@ router.delete('/central_part_no/:part_no/:factory', async (req, res) => {
     }
 });
 
+
+//capping，14通，non-capping，車用
+
+router.get('/platform', async (req, res) => {
+    try {
+        const pool = await mysqlConnection(getDbConfig('aoi'));
+        const result = await pool.query(`SELECT * FROM platform WHERE isdelete = 0`);
+        res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: result[0],
+            time: getCurrentTimeInTaipei()
+        });
+    } catch (error) {
+        console.error('操作失敗:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || '記錄創建失敗',
+            time: getCurrentTimeInTaipei()
+        });
+    }
+});
+
+router.post('/platform/add', async (req, res) => {
+    const { part_num, platform, creator } = req.body;
+    console.log(part_num, platform, creator);
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    const result = await pool.query(`INSERT INTO platform (part_num, platform, creator) VALUES (?, ?, ?)`, [part_num, platform, creator]);
+    res.status(200).json({
+        status: 'success',
+        message: '成功',
+        data: result[0],
+        time: getCurrentTimeInTaipei()
+    });
+});
 module.exports = router;

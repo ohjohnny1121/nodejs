@@ -141,8 +141,17 @@ const dbConfigs = {
     database: "NCN",
     options: defaultOptions,
     pool: defaultPoolConfig,
+  },
+  S3Acme:{
+    server: "10.23.65.44",
+    user: "dc_read",
+    password: "ewFJ9%(4",
+    database: "acme",
+    options: defaultOptions,
+    pool: defaultPoolConfig,
   }
 };
+
 
 // 連接池創建工廠
 const createPool = async (config, name) => {

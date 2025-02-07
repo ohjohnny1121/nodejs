@@ -9,6 +9,7 @@ const cron = require('node-cron');
 const os = require('os');
 const { dailyAdd, stackAdd, apiExecute } = require('./daily/dailyFunc.js');
 const cors = require('cors');
+const { mysqlConnection, queryFunc } = require('./mysql'); // 根據您的實際路徑調整
 // 獲取主機名稱
 const hostname = os.hostname();
 app.use(cors());
@@ -53,14 +54,16 @@ cron.schedule('00 00 * * * *', async () => {
 });
 
 // 固定時間執行
-cron.schedule('50 02 14 * * *', async () => {
+cron.schedule('10 48 09 * * *', async () => {
     try {
-        console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
-        await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
-        console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
-        await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
-        console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
-        await apiExecute(`${API_BASE_URL}/tool/insert_trigger_factory`);
+        // console.log(`${API_BASE_URL}/daily/aoi/sndailyadd 開始執行 SN AOI 每日資料更新`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
+        // console.log(`${API_BASE_URL}/daily/aoi/trend 開始執行 SN AOI 每日資料更新`);
+        // await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
+        // console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
+        // await apiExecute(`${API_BASE_URL}/tool/insert_trigger_factory`);
+        console.log(`${API_BASE_URL}/daily/aoi/daily_platform 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/daily_platform`);
         
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
@@ -209,7 +212,7 @@ const initDatabase = async () => {
                 await stackAdd(`${API_BASE_URL}/tool/update_trigger_factory`);
                 res.json({ message: 'update_trigger_factory 執行成功' });
             } catch (error) {
-                console.error('執行 update_trigger_factory 失�:', error);
+                console.error('執行 update_trigger_factory 失敗:', error);
                 res.status(500).json({ error: '執行失敗' });
             }
         });
