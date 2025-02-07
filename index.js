@@ -34,6 +34,7 @@ cron.schedule('01 00 08 * * *', async () => {
         await stackAdd(`${API_BASE_URL}/daily/aoi/sndailyadd`);
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         await apiExecute(`${API_BASE_URL}/daily/tool/update_trigger_factory`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/daily_platform`);
         // await stackAdd(`${API_BASE_URL}/daily/aoi/transfer`);
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
@@ -48,6 +49,8 @@ cron.schedule('00 00 * * * *', async () => {
         await stackAdd(`${API_BASE_URL}/daily/aoi/trend`);
         console.log(`${API_BASE_URL}/tool/insert_trigger_factory 開始執行更新`);
         await apiExecute(`${API_BASE_URL}/tool/insert_trigger_factory`);
+        console.log(`${API_BASE_URL}/daily/aoi/daily_platform 開始執行 SN AOI 每日資料更新`);
+        await stackAdd(`${API_BASE_URL}/daily/aoi/daily_platform`);
     } catch (error) {
         console.error(`[${hostname}] 執行 SN AOI 定時任務失敗:`, error);
     }
