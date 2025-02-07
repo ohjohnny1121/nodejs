@@ -1,6 +1,6 @@
 const express = require("express");
 const sql = require("mssql");
-const { timestampToYMDHIS, timestampToYMDHIS2 } = require("../time");
+const { timestampToYMDHIS, timestampToYMDHIS2, getCurrentTimeInTaipei } = require("../time");
 const { mysqlConnection, queryFunc } = require("../mysql");
 const { poolObj, initializePools } = require("../mssql");
 const getDbConfig = require('../config/database');
@@ -8,8 +8,7 @@ const { convertToCamelCase } = require('../utils/formatters');
 const router = express.Router();
 
 // 初始化連接池變數
-let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme;
-
+let poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc,poolH3Acme,poolS3Acme;
 
 
 
@@ -17,7 +16,7 @@ router.use(async (req, res, next) => {
     try {
         if (!poolAcme) {
             await initializePools();
-            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc ,poolH3Acme} = poolObj);
+            ({ poolAcme, poolDc, poolNCN, poolSNAcme, poolSNDc ,poolH3Acme,poolS3Acme} = poolObj);
         }
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Methods", "GET,POST");
@@ -43,7 +42,7 @@ router.get("/sndailyadd", async (req, res) => {
         endTime.toLocaleDateString() + " " + endTime.toTimeString().slice(0, 8);
   
       const startTime = new Date();
-      startTime.setDate(startTime.getDate() -10);
+      startTime.setDate(startTime.getDate() -150);
       startTime.setHours(8, 0, 0, 0);
       const l8sqlTime = 
         startTime.toLocaleDateString() + " " + startTime.toTimeString().slice(0, 8);
@@ -73,19 +72,22 @@ router.get("/sndailyadd", async (req, res) => {
 // --AND h.ChangeTime BETWEEN '${l8sqlTime}' AND '${t8sqlTime}'`;
 
 const sqlSnReadOut = `
-    SELECT DISTINCT lotnum, layer, proccode, AftStatus, ChangeTime, Location 
+    SELECT DISTINCT partnum,lotnum, layer, proccode, AftStatus, ChangeTime, Location 
     FROM v_pdl_ckhistory(nolock) 
-    WHERE proccode = 'AOI04'
+    WHERE proccode in ('AOI04','AOI26')
     AND BefStatus = 'CheckIn' 
-    AND AftStatus = 'CheckOut' 
+    AND AftStatus = 'CheckOut'
+    and partnum like '%2231611%'
     --AND BefStatus = 'MoveIn' 
     --AND AftStatus = 'CheckIn'
     AND ChangeTime BETWEEN '${l8sqlTime}' AND '${t8sqlTime}'`;
     
     const snReadOutResult = await poolSNDc.query(sqlSnReadOut);
+    // res.json([...new Set(snReadOutResult.recordset.map(i => i.lotnum.trim()))]);
     //
     const lotnumList = [...new Set(snReadOutResult.recordset.map(i => i.lotnum.trim()))];
     const sqlStringLotNum = `'${lotnumList.join("','")}'`;
+    // res.json(sqlStringLotNum);
     // res.json(snReadOutResult);
     // 第二次查詢：比對 YM 和 H3 的批號
     const sqlissueDtl = `SELECT DISTINCT OldLotNum,trim(LotNum)LotNum
@@ -148,31 +150,25 @@ const sqlSnReadOut = `
         H.MpLtY,
         --H.MpLtX*H.MpLtY*2 Qnty_S,
         J.Qnty_S,
-        CONVERT(varchar,C.ChangeTime, 120)ChangeTime
+        CONVERT(varchar,J.ChangeTime, 120)ChangeTime
         FROM SN_VRS_test_result_new(nolock)X 
-        INNER JOIN SN_VRS_step_rec_new(nolock)V
+        LEFT JOIN SN_VRS_step_rec_new(nolock)V
         ON X.LotNum=V.LotNum AND X.Layer=V.Layer
-        INNER JOIN (
+        LEFT JOIN (
         select*from SN_Layout_Center_Head(nolock)
         	union
 		    select*from YM_Layout_Center_Head(nolock)
         )H
         ON LEFT(X.CenterPart,7) = LEFT(H.JobName,7)
-        INNER JOIN 
+        LEFT JOIN 
         (
           SELECT DISTINCT lotnum,layer,Qnty_S,ChangeTime FROM v_pdl_ckhistory(nolock) WHERE 
-          proccode ='AOI04'
-          AND BefStatus ='MoveIn' 
-          AND AftStatus = 'CheckIn'
+          proccode in ('AOI04','AOI26')
+          AND BefStatus = 'CheckIn' 
+          AND AftStatus = 'CheckOut'
+          AND ChangeTime BETWEEN '${l8sqlTime}' AND '${t8sqlTime}'
         )J 
         ON X.LotNum =J.lotnum AND X.layer =J.layer
-        INNER JOIN
-        (
-          SELECT DISTINCT lotnum,layer,Qnty_S,ChangeTime FROM v_pdl_ckhistory(nolock) WHERE 
-          proccode ='AOI04'
-          AND AftStatus = 'CheckOut'
-        )C 
-        ON X.LotNum =C.lotnum AND X.layer =C.layer
         WHERE X.LotNum IN (${sqlStringLotNum}) 
         AND X.Classify !='0'
         AND X.UnitDefect_AosBef = '1'
@@ -197,7 +193,8 @@ const sqlSnReadOut = `
       const sfData = sfResult.recordset;
       const layoutData = layoutResult.recordset;
       const summaryData = [];
-      // res.json(rawData);
+
+      // res.json([...new Set(rawData.map(i=>i.LotNum))]); 
       // 處理數據
       rawData.forEach((r) => {
         const layerAry = r.LayerName.split("L");
@@ -240,13 +237,13 @@ const sqlSnReadOut = `
   
       const lot_layer_qty = [...new Set(
         rawData.map(r => 
-          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}~${r.Qnty_S}~${r.part_num}~${r.revision}`
+          `${r.PartNo}~${r.LotNum}~${r.LayerName}~${r.LayerType}~${r.LotType}~${r.upp}~${r.ChangeTime}~${r.ProdClass}~${r.Qnty_S}~${r.part_num}~${r.revision}~${r.ULMark94V}`
         )
       )];
       // res.json(lot_layer_qty);
       // 處理每個批次的資料
       lot_layer_qty.forEach((i) => {
-        const [PartNo, LotNum, LayerName, LayerType, LotType, upp, ChangeTime, ProdClass,Qnty_S,part_num,revision] = i.split("~");
+        const [PartNo, LotNum, LayerName, LayerType, LotType, upp, ChangeTime, ProdClass,Qnty_S,part_num,revision,ULMark94V] = i.split("~");
         const Obj = {};
   
         const filterData = rawData.filter(r => 
@@ -351,6 +348,7 @@ const sqlSnReadOut = `
           upp:upp,
           part_num,
           revision,
+          device_name:ULMark94V,
           // MpLtX: mpLtX,
           // MpLtY: mpLtY,
         });
@@ -423,7 +421,7 @@ router.get("/trend", async (req, res) => {
             FROM v_pdl_ckhistory WITH (nolock)
             WHERE lotnum = LotNum 
             AND layer = Layer
-            AND proccode = 'AOI04'
+            AND proccode in ('AOI04','AOI26')
             AND ChangeTime BETWEEN '${startDateStr}' AND '${endDateStr}'
           )
         GROUP BY 
@@ -446,7 +444,7 @@ router.get("/trend", async (req, res) => {
         INNER JOIN v_pdl_ckhistory j WITH (nolock)
           ON d.lot_num = j.lotnum 
           AND d.layer = j.layer
-          AND j.proccode = 'AOI04'
+          AND j.proccode in ('AOI04','AOI26')
           AND j.ChangeTime BETWEEN '${startDateStr}' AND '${endDateStr}'
         LEFT JOIN SN_VRS_step_rec_new b WITH (nolock)
           ON d.layer = b.Layer 
@@ -474,178 +472,104 @@ router.get("/trend", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-router.get("/example", async (req, res) => {
-    try {
-        // 直接指定要使用的數據庫名稱
-        const conn = await mysqlConnection(getDbConfig('MySQL'));
-        const result = await queryFunc(conn, 'SELECT * FROM your_table');
-        
-        // 需要用其他數據庫時
-        const reportConn = await mysqlConnection(getDbConfig('Report'));
-        const analysisConn = await mysqlConnection(getDbConfig('Analysis'));
-        
-        res.json({ result });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
-// daily資料分defect_code CS
-router.get('/daily_data_all_defect_CS/:factory/:part_no/:start_date/:end_date/:isTrigger', async (req, res) => {
-    const { factory, part_no, start_date, end_date, isTrigger } = req.params;
-    const limit = Number(req.query.limit) || 1000;
+router.get('/daily_platform', async (req, res) => {
+  try {
+
     
-    try {
-        const pool = await mysqlConnection(getDbConfig('aoi'));
-        
-        // 先獲取所有的 defect_code
-        const sqlDefectCodes = `
-            SELECT DISTINCT defect_code, side
-            FROM aoi_lot_defect_rate d
-            WHERE EXISTS (
-                SELECT 1 
-                FROM aoi_yield_defect a 
-                WHERE a.lot_num = d.lot_num
-                AND a.factory = ?
-                AND a.part_no = ?
-            )
-            ORDER BY defect_code, side
-        `;
-        
-        const defectCodes = await queryFunc(pool, sqlDefectCodes, [factory, part_no]);
-        const pivotColumns = defectCodes
-            .map(d => `SUM(CASE WHEN d.defect_code = '${d.defect_code}' AND d.side = '${d.side}' THEN d.defect_rate ELSE 0 END) as \`${d.defect_code}_${d.side}\``)
-            .join(',\n');
+    const sqlStr = `
+    with p as (SELECT 
+    m.PartNum, 
+    m.Revision,
+    m.PartNum + m.Revision AS partno,
+    m.ProcCode, 
+    l.LayerName, 
+    CASE 
+        WHEN l.LayerName = '-Outer' THEN 999
+        ELSE (CAST(SUBSTRING(l.LayerName, CHARINDEX('L', l.LayerName, 4) + 1, 2) AS INT) - 
+              CAST(SUBSTRING(l.LayerName, CHARINDEX('L', l.LayerName) + 1, CHARINDEX('L', l.LayerName, 4) - CHARINDEX('L', l.LayerName) - 1) AS INT) + 1) / 2 
+    END AS Layer,
+    CASE 
+        WHEN r.issLayer = '1' THEN 'Core'
+        ELSE 'Bu'
+    END AS iscore,
+    m.SerialNum, 
+    m.RecipeType, 
+    p.ProcName, 
+    LEFT(p.ProcName, 3) + CAST(m.Degree AS CHAR(1)) + RIGHT(p.ProcName, 3) + CAST(m.Times AS CHAR(1)) AS ProcName2, 
+    p.Decision 
+FROM V_PnumProcRouteDtl (NOLOCK) m
+INNER JOIN NumofLayer (NOLOCK) l ON m.layer = l.Layer
+INNER JOIN ProcBasic (NOLOCK) p ON m.proccode = p.ProcCode
+INNER JOIN ProdBOM (NOLOCK) r ON m.PartNum = r.PartNum AND m.Revision = r.Revision and l.LayerName=r.LayerName
+WHERE ProcName='PTHECU'
+), 
+dt as (SELECT 
+    PartNum,
+    Revision, 
+    COUNT(CASE WHEN iscore = 'Core' THEN 1 ELSE NULL END) AS core,
+    COUNT(CASE WHEN iscore = 'Bu' THEN 1 ELSE NULL END) AS bu,
+    count(*) as total
+FROM p
+GROUP BY PartNum,Revision)
+select PartNum as part_num,0 as isdelete,Revision,'System' as creator,
+	case when total>2  then (case when core>0 then 'Multi Layer Core' else '14通' end) else (case when total=1 then 'non-capping' else (case when core=0 then '14通' else 'capping' end) end)end as platform
+	
+ from dt`;
+    const result = await poolSNAcme.query(sqlStr);
+    const sqlcar=`Select distinct PartNum From PDL_ProcessNote where notes like '%車用%'`
+    const carResult = await poolSNAcme.query(sqlcar);
+    const carAry = carResult.recordset.map(i=>i.PartNum);
 
-        // 使用 UNION 合併最新和最舊的記錄
-        const sqlStr = `
-            (
-                SELECT 
-                    a.id,
-                    a.lot_num,
-                    a.layer,
-                    a.factory,
-                    a.prod_class,
-                    a.part_no,
-                    a.lot_type,
-                    a.bef_yield,
-                    a.yield,
-                    a.time,
-                    a.c_top_1,
-                    a.c_top1,
-                    a.c_top_2,
-                    a.c_top2,
-                    a.c_top_3,
-                    a.c_top3,
-                    a.s_top_1,
-                    a.s_top1,
-                    a.s_top_2,
-                    a.s_top2,
-                    a.s_top_3,
-                    a.s_top3,
-                    a.remark,
-                    a.upp,
-                    ${pivotColumns},
-                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
-                FROM aoi_yield_defect a
-                LEFT JOIN aoi_lot_defect_rate d 
-                    ON a.lot_num = d.lot_num
-                    AND a.layer = d.layer_name
-                LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-                WHERE a.time >= ? 
-                AND a.time <= ? 
-                AND a.factory = ?
-                AND a.part_no = ?
-                AND s.isdelete = 'false'
-                ${Number(isTrigger) ? 'AND a.bef_yield <= s.triger' : ''}
-                GROUP BY 
-                    a.id, a.lot_num, a.layer, a.factory, a.prod_class,
-                    a.part_no, a.lot_type, a.bef_yield, a.yield, a.time,
-                    a.c_top_1, a.c_top1, a.c_top_2, a.c_top2, a.c_top_3,
-                    a.c_top3, a.s_top_1, a.s_top1, a.s_top_2, a.s_top2,
-                    a.s_top_3, a.s_top3, a.remark, a.upp
-                ORDER BY a.time DESC
-                LIMIT ${Math.ceil(limit/2)}
-            )
-            UNION
-            (
-                SELECT 
-                    a.id,
-                    a.lot_num,
-                    a.layer,
-                    a.factory,
-                    a.prod_class,
-                    a.part_no,
-                    a.lot_type,
-                    a.bef_yield,
-                    a.yield,
-                    a.time,
-                    a.c_top_1,
-                    a.c_top1,
-                    a.c_top_2,
-                    a.c_top2,
-                    a.c_top_3,
-                    a.c_top3,
-                    a.s_top_1,
-                    a.s_top1,
-                    a.s_top_2,
-                    a.s_top2,
-                    a.s_top_3,
-                    a.s_top3,
-                    a.remark,
-                    a.upp,
-                    ${pivotColumns},
-                    AVG(CAST(s.triger AS DECIMAL(10,2))) AS triger,
-                    AVG(CAST(s.target AS DECIMAL(10,2))) AS target
-                FROM aoi_yield_defect a
-                LEFT JOIN aoi_lot_defect_rate d 
-                    ON a.lot_num = d.lot_num
-                    AND a.layer = d.layer_name
-                LEFT JOIN aoi_spec s ON a.part_no = s.part_no
-                WHERE a.time >= ? 
-                AND a.time <= ? 
-                AND a.factory = ?
-                AND a.part_no = ?
-                AND s.isdelete = 'false'
-                ${Number(isTrigger) ? 'AND a.bef_yield <= s.triger' : ''}
-                GROUP BY 
-                    a.id, a.lot_num, a.layer, a.factory, a.prod_class,
-                    a.part_no, a.lot_type, a.bef_yield, a.yield, a.time,
-                    a.c_top_1, a.c_top1, a.c_top_2, a.c_top2, a.c_top_3,
-                    a.c_top3, a.s_top_1, a.s_top1, a.s_top_2, a.s_top2,
-                    a.s_top_3, a.s_top3, a.remark, a.upp
-                ORDER BY a.time ASC
-                LIMIT ${Math.ceil(limit/2)}
-            )
-            ORDER BY time DESC
-        `;
+    const sqlS3 = `Select distinct PartNum From PDL_ProcessNote where notes like '%車用%'`
+    const S3CarResult = await poolS3Acme.query(sqlS3);
+    const S3CarAry = S3CarResult.recordset.map(i=>i.PartNum);
+    const pool = await mysqlConnection(getDbConfig('aoi'));
+    const sqlplatform = `SELECT * FROM platform WHERE isdelete = 0`;
+    const platformResult = await queryFunc(pool, sqlplatform);
+    const platformAry = platformResult.map(i=>i.part_num);
+    
 
-        const result = await queryFunc(pool, sqlStr, [
-            convertTimestampToFormattedDate(start_date),
-            convertTimestampToFormattedDate(end_date),
-            factory,
-            part_no,
-            convertTimestampToFormattedDate(start_date),
-            convertTimestampToFormattedDate(end_date),
-            factory,
-            part_no
-        ]);
-
-        res.status(200).json({
-            status: 'success',
-            message: '成功',
-            data: result,
-            time: getCurrentTimeInTaipei()
-        });
-    } catch (error) {
-        console.error('操作失敗:', error);
-        res.status(500).json({
-            status: 'error',
-            message: error.message || '記錄創建失敗',
-            time: getCurrentTimeInTaipei()
-        });
+    result.recordset.forEach(i=>{
+      if(carAry.includes(i.part_num+i.Revision)){
+        i.platform = '車用';
+      }
+      if(S3CarAry.includes(i.part_num+i.Revision)){
+        i.platform = '車用';
+      }
+      i.part_num=i.part_num.slice(0,7);
+      delete i.Revision;
+    });
+    function removeDuplicates(array, key) {
+      const uniqueKeys = new Set();
+      return array.filter(item => {
+          const value = item[key];
+          if (!uniqueKeys.has(value)) {
+              uniqueKeys.add(value);
+              return true;
+          }
+          return false;
+      });
     }
-});
+    const uniqueResult = removeDuplicates(result.recordset, 'part_num').filter(i=>!platformAry.includes(i.part_num));
+      res.json({
+        daily: {
+          data: uniqueResult,
+          db: "aoi",
+          table: "platform",
+          match: [
+            'platform',
+          ]
+        },
+      });
 
+  } catch (error) {
+    console.error('操作失敗:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || '記錄創建失敗',
+      time: getCurrentTimeInTaipei()
+    });
+  }
+});
 module.exports = router;
