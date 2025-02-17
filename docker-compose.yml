@@ -2,19 +2,54 @@ version: '3'
 services:
   mysql:
     image: mysql:8.0
+    command: 
+      - --default-authentication-plugin=mysql_native_password 
+      - --init-file=/docker-entrypoint-initdb.d/init.sql
+      - --max-connections=500
+      - --wait-timeout=28800        # 增加到 8 小時
+      - --interactive-timeout=28800  # 增加到 8 小時
+      - --connect-timeout=20        # 添加連接超時設置
+      - --net_read_timeout=90        # 添加讀取超時
+      - --net_write_timeout=90       # 添加寫入超時
+      - --max_allowed_packet=128M    # 增加封包大小
     environment:
       MYSQL_ROOT_PASSWORD: pwd123
+      MYSQL_USER: root
+      MYSQL_PASSWORD: pwd123
+      MYSQL_MAX_CONNECTIONS: 1000
+      MYSQL_THREAD_CACHE_SIZE: 128
+
 
     volumes:
       - /d/sn-mysql:/var/lib/mysql  # 本地 SSD 位置
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app-network
+    ports:
+      - "3306:3306"
     restart: always
 
   api:
     build: .
     ports:
       - "3000:3000"
+    environment:
+      # MySQL 配置
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=pwd123
+    extra_hosts:
+      # SQL Server 映射
+      - "UTCYMEDCLSNR01:10.22.66.37"
+      - "UTCSNACMLSNR:10.23.65.44"
+      - "10.22.65.105:10.22.65.105"
+      - "10.22.65.120:10.22.65.120"
+      - "10.22.65.134:10.22.65.134"
+      - "10.22.66.37:10.22.66.37"
+      - "UTCYMACMT02:10.22.65.135"
+      - "Utcsycimdw01:10.30.40.86"
+      - "UTCSNCIMDB:10.23.65.44"
+
     depends_on:
       - mysql
     networks:

@@ -1,0 +1,1661 @@
+openapi: 3.0.0
+info:
+  title: AOI API
+  version: 1.0.0
+  description: API for managing AOI data
+servers:
+  - url: http://10.22.94.69:3000
+    description: 內部網絡服務器
+  - url: http://WYM2DNA4378:3000
+    description: 本地服務器
+tags:
+  - name: Lot Management
+    description: Operations related to lot management
+  - name: AOI Data
+    description: Operations related to AOI data retrieval
+  - name: Image Retrieval
+    description: Operations related to image retrieval
+  - name: NCN
+    description: Operations related to NCN
+paths:
+  /aoi/lot-list/{factory}/{lot_num}/{layer}:
+    get:
+      tags:
+        - Lot Management
+      summary: Retrieve lot list for a specific lot
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+        - in: path
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: Layer
+      responses:
+        '200':
+          description: Lot list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving lot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
+  /aoi/lot-list/{uid}:
+    get:
+      tags:
+        - Lot Management
+      summary: Retrieve lot list for a specific user
+      parameters:
+        - in: path
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      responses:
+        '200':
+          description: Lot list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        '500':
+          description: Error retrieving lot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/lot-list:
+    post:
+      tags:
+        - Lot Management
+      summary: Add or update lot list for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uid:
+                  type: string
+                  description: User identifier
+                lot_list:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      factory:
+                        type: string
+                      part_no:
+                        type: string
+                      lot_num:
+                        type: string
+                      layer:
+                        type: string
+      responses:
+        '200':
+          description: Lot list updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error updating lot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+    delete:
+      tags:
+        - Lot Management
+      summary: Delete a specific lot from the user's lot list
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: User identifier
+        - in: query
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+        - in: query
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: Part number
+        - in: query
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+        - in: query
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: Layer
+      responses:
+        '200':
+          description: Lot deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting lot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/lot-list-all:
+    delete:
+      tags:
+        - Lot Management
+      summary: Delete all lots for a specific user
+      parameters:
+        - in: query
+          name: uid
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      responses:
+        '200':
+          description: All lots deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting all lots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/aoi-revise-remark:
+    post:
+      tags:
+        - AOI Data
+      summary: Update remark for a specific lot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lot_num:
+                  type: string
+                  description: Lot number
+                remark:
+                  type: string
+                  description: Remark to be updated
+      responses:
+        '200':
+          description: Remark updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/history/{lot_num}:
+    get:
+      tags:
+        - AOI Data
+      summary: Retrieve history data for a specific lot
+      parameters:
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+      responses:
+        '200':
+          description: History data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/aoidaily/{startDate}/{endDate}/{factory}/{isTrigger}:
+    get:
+      tags:
+        - AOI Data
+      summary: Retrieve daily AOI data
+      parameters:
+        - in: path
+          name: startDate
+          required: true
+          schema:
+            type: string
+          description: Start date in timestamp format
+        - in: path
+          name: endDate
+          required: true
+          schema:
+            type: string
+          description: End date in timestamp format
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: Factory identifier
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: Trigger identifier
+      responses:
+        '200':
+          description: Daily AOI data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/image:
+    get:
+      tags:
+        - Image Retrieval
+      summary: Retrieve AOI image
+      parameters:
+        - in: query
+          name: ImagePath
+          required: true
+          schema:
+            type: string
+          description: Path to the image
+        - in: query
+          name: DefectSeq
+          required: true
+          schema:
+            type: string
+          description: Defect sequence number
+        - in: query
+          name: BoardNo
+          required: true
+          schema:
+            type: string
+          description: Board number
+        - in: query
+          name: Side
+          required: true
+          schema:
+            type: string
+          description: Side of the board
+        - in: query
+          name: xValue
+          required: true
+          schema:
+            type: number
+          description: X coordinate value
+        - in: query
+          name: yValue
+          required: true
+          schema:
+            type: number
+          description: Y coordinate value
+      responses:
+        '200':
+          description: Image retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string
+                    description: Base64 encoded image
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  image:
+                    type: string
+
+  /aoi/mapping/{lot_num}/{layer}/{isincludefake}:
+    get:
+      tags:
+        - AOI Mapping
+      summary: Retrieve mapping data for a specific lot and layer
+      parameters:
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+        - in: path
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: Layer name
+        - in: path
+          name: isincludefake
+          required: true
+          schema:
+            type: string
+          description: Include fake data
+      responses:
+        '200':
+          description: Mapping data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '500':
+          description: Error retrieving mapping data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/layout/{lot_num}/{layer}:
+    get:
+      tags:
+        - AOI Mapping
+      summary: Retrieve layout data for a specific lot and layer
+      parameters:
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+        - in: path
+          name: layer
+          required: true
+          schema:
+            type: string
+          description: Layer name
+      responses:
+        '200':
+          description: Layout data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dataAry:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          x:
+                            type: number
+                          y:
+                            type: number
+                  headdata:
+                    type: array
+                    items:
+                      type: object
+        '500':
+          description: Error retrieving layout data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/ncnrecord/{lot_num}:
+    get:
+      tags:
+        - NCN
+      summary: Retrieve NCN record for a specific lot
+      parameters:
+        - in: path
+          name: lot_num
+          required: true
+          schema:
+            type: string
+          description: Lot number
+      responses:
+        '200':
+          description: NCN record retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ncn_no:
+                      type: string
+                    open_datetime:
+                      type: string
+                    layer:
+                      type: string
+                    failure_mode:
+                      type: string
+                    problem_des:
+                      type: string
+                    prd_qty:
+                      type: number
+                    defect_qty:
+                      type: number
+                    prd_unit:
+                      type: string
+                    defect_unit:
+                      type: string
+                    ncn_level:
+                      type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        '500':
+          description: Error retrieving NCN record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  # /aoi/trend_data/{process}/{part_no}/{lot_num}/{layer}/{defect_type}:
+  #   get:
+  #     tags:
+  #       - AOI Data
+  #     summary: Retrieve trend data for specific parameters
+  #     parameters:
+  #       - in: path
+  #         name: process
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: Process identifier
+  #       - in: path
+  #         name: part_no
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: Part number
+  #       - in: path
+  #         name: lot_num
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: Lot number
+  #       - in: path
+  #         name: layer
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: Layer name
+  #       - in: path
+  #         name: defect_type
+  #         required: true
+  #         schema:
+  #           type: string
+  #         description: Type of defect
+  #     responses:
+  #       '200':
+  #         description: Trend data retrieved successfully
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #                 message:
+  #                   type: string
+  #                 data:
+  #                   type: array
+  #                   items:
+  #                     type: object
+  #                     properties:
+  #                       part_no:
+  #                         type: string
+  #                       lot_num:
+  #                         type: string
+  #                       layer_name:
+  #                         type: string
+  #                       lot_type:
+  #                         type: string
+  #                       check_in_time:
+  #                         type: string
+  #                       proc_group:
+  #                         type: string
+  #                       proc_name:
+  #                         type: string
+  #                       MachineName:
+  #                         type: string
+  #                       proc_name_e:
+  #                         type: string
+  #                       SerialNum:
+  #                         type: string
+  #                       defect_rate:
+  #                         type: number
+  #                       vrs_code:
+  #                         type: string
+  #                 time:
+  #                   type: string
+  #                   format: date-time
+  #       '500':
+  #         description: Error retrieving trend data
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #                 message:
+  #                   type: string
+  #                 time:
+  #                   type: string
+  #                   format: date-time
+
+  /aoi/trend_data_batch/{req_count}:
+    get:
+      tags:
+        - AOI Trend
+      summary: Retrieve batch trend data
+      parameters:
+        - in: path
+          name: req_count
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: itemsArray
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              example: |
+                {
+                  "process": "AOI1VRS1",
+                  "part_no": "2231490",
+                  "lot_num": "24CT6001-03-00",
+                  "layer": "-L5L6",
+                  "defect_type": "A1"
+                }
+          style: form
+          explode: true
+          description: Array of JSON strings containing trend data parameters
+      responses:
+        '200':
+          description: Batch trend data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_no:
+                          type: string
+                        lot_num:
+                          type: string
+                        layer:
+                          type: string
+                        defect_type:
+                          type: string
+                        process:
+                          type: string
+                        data:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              part_no:
+                                type: string
+                              lot_num:
+                                type: string
+                              layer_name:
+                                type: string
+                              lot_type:
+                                type: string
+                              check_in_time:
+                                type: string
+                              proc_group:
+                                type: string
+                              proc_name:
+                                type: string
+                              MachineName:
+                                type: string
+                              proc_name_e:
+                                type: string
+                              SerialNum:
+                                type: string
+                              defect_rate:
+                                type: number
+                              defect_code:
+                                type: string
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request - Invalid input format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                    example: "輸入格式錯誤"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/factory-list:
+    get:
+      tags:
+        - AOI Data
+      summary: Retrieve list of factories
+      responses:
+        '200':
+          description: Factory list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving factory list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/process_name:
+    post:
+      tags:
+        - process_name
+      summary: Add or update process name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                process_name:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: Process name added or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error adding or updating process name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    get:
+      tags:
+        - process_name
+      summary: Retrieve process name
+      responses:
+        '200':
+          description: Process name retrieved successfully
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                      example: "success"
+                    message:
+                      type: string
+                      example: "成功"
+                    data:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          process_name:
+                            type: string
+                          creator:
+                            type: string
+                    time:
+                      type: string
+                      format: date-time
+          '500':
+            description: Error retrieving process name
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    message:
+                      type: string
+                    time:
+                      type: string
+                      format: date-time
+  /aoi/process_name/{process_name}:
+    delete:
+      tags:
+        - process_name
+      summary: Delete process name
+      parameters:
+        - in: path
+          name: process_name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Process name deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "成功"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting process name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "刪除失敗"
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Process name is necessary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "process_name is necessary"
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/central_part_no:
+    post:
+      tags:
+        - central_part_no
+      summary: Add or update central part number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_no:
+                  type: string
+                factory:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: Central part number added or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    get:
+      tags:
+        - central_part_no
+      summary: Retrieve central part number
+      responses:
+        '200':
+          description: Central part number retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_no:
+                          type: string
+                        factory:
+                          type: string
+                        creator:
+                          type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error retrieving central part number
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/central_part_no/{part_no}/{factory}:
+    delete:
+      tags:
+        - central_part_no
+      summary: Delete central part number
+      parameters:
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Central part number deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: Error deleting central part number
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    example: "參數不完整：需要 part_no 和 factory"
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/daily_data_all_defect_CS/{factory}/{part_no}/{start_date}/{end_date}/{isTrigger}:
+    get:
+      tags:
+        - AOI Data
+      summary: 獲取按照 C/S 分類的缺陷代碼統計數據（包含最新和最舊記錄）
+      description: 返回指定時間範圍內的最新和最舊記錄，使用 UNION自動去除重複數據
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: 工廠代碼
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+        - in: path
+          name: start_date
+          required: true
+          schema:
+            type: string
+          description: 開始日期時間戳
+        - in: path
+          name: end_date
+          required: true
+          schema:
+            type: string
+          description: 結束日期時間戳
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: 是否只顯示觸發值以下的數據 (0 或 1)
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    description: 按時間降序排序的記錄列表
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        lot_num:
+                          type: string
+                        layer:
+                          type: string
+                        factory:
+                          type: string
+                        prod_class:
+                          type: string
+                        part_no:
+                          type: string
+                        bef_yield:
+                          type: number
+                        yield:
+                          type: number
+                        time:
+                          type: string
+                        triger:
+                          type: number
+                        target:
+                          type: number
+                        # 動態生成的缺陷代碼欄位
+                        defect_codes:
+                          type: object
+                          description: 動態生成的缺陷代碼統計數據
+                          additionalProperties:
+                            type: number
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/daily_data_all_defect/{factory}/{part_no}/{start_date}/{end_date}/{isTrigger}/{count}:
+    get:
+      tags:
+        - AOI Data
+      summary: 獲取所有缺陷代碼統計數據
+      description: 根據指定的數量返回最新和最舊的記錄，當count為0時返回所有記錄
+      parameters:
+        - in: path
+          name: factory
+          required: true
+          schema:
+            type: string
+          description: 工廠代碼
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+        - in: path
+          name: start_date
+          required: true
+          schema:
+            type: string
+          description: 開始日期時間戳
+        - in: path
+          name: end_date
+          required: true
+          schema:
+            type: string
+          description: 結束日期時間戳
+        - in: path
+          name: isTrigger
+          required: true
+          schema:
+            type: string
+          description: 是否只顯示觸發值以下的數據 (0 或 1)
+        - in: path
+          name: count
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: 返回的數據數量，當為0時返回所有數據，大於0時返回最新和最舊的各count筆數據
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        lot_num:
+                          type: string
+                        layer:
+                          type: string
+                        factory:
+                          type: string
+                        prod_class:
+                          type: string
+                        part_no:
+                          type: string
+                        bef_yield:
+                          type: number
+                        yield:
+                          type: number
+                        time:
+                          type: string
+                        triger:
+                          type: number
+                        target:
+                          type: number
+                        defect_codes:
+                          type: object
+                          description: 動態生成的缺陷代碼統計數據
+                          additionalProperties:
+                            type: number
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+
+  /aoi/platform:
+    get:
+      tags:
+        - platform
+      summary: 獲取平台資料
+      responses:
+        '200':
+          description: 成功獲取數據
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        part_no:
+                          type: string
+                        platform:
+                          type: string
+                        creator:
+                          type: string
+                        isdelete:
+                          type: boolean
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+    post:
+      tags:
+        - platform
+      summary: 新增平台資料
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                part_no:
+                  type: string
+                platform:
+                  type: string
+                creator:
+                  type: string
+      responses:
+        '200':
+          description: 成功新增資料
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time
+  /aoi/platform/{part_no}:
+    delete:
+      tags:
+        - platform
+      summary: 刪除平台資料
+      parameters:
+        - in: path
+          name: part_no
+          required: true
+          schema:
+            type: string
+          description: 料號
+      responses:
+        '200':
+          description: 成功刪除資料
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "成功"
+                  time:
+                    type: string
+                    format: date-time
+        '500':
+          description: 操作失敗
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  message:
+                    type: string
+                  time:
+                    type: string
+                    format: date-time

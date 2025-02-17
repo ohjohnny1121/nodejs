@@ -26,8 +26,16 @@ const defaultPoolConfig = {
 
 // 數據庫配置
 const dbConfigs = {
+  H3Acme: {
+    server: "utchfacmrpt",
+    user: "S3YIP",
+    password: "yipread",
+    database: "acme",
+    options: { ...defaultOptions, requestTimeout: 600000 },
+    pool: defaultPoolConfig,
+  },
   SPC: {
-    server: "10.22.65.134",
+    server: "10.22.65.105",
     user: "ymyip",
     password: "5CQPBcyE",
     database: "SPC_Unimicron",
@@ -83,7 +91,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   Bga: {
-    server: "Utcsycimdw01",
+    // server: "Utcsycimdw01",
+    server: "10.30.40.86",
     user: "Pc_user",
     password: "Aa12345",
     database: "bga_eda",
@@ -107,7 +116,8 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   SNAcme: {
-    server: "UTCSNACMLSNR",
+    // server: "UTCSNACMLSNR",
+    server: "10.23.65.44",
     user: "dc_read",
     password: "ewFJ9%(4",
     database: "acme",
@@ -115,14 +125,33 @@ const dbConfigs = {
     pool: defaultPoolConfig,
   },
   SNDc: {
-    server: "UTCSNACMLSNR",
+    // server: "UTCSNACMLSNR",
+    server: "10.23.65.44",
     user: "dc_read",
     password: "ewFJ9%(4",
     database: "dc",
     options: defaultOptions,
     pool: defaultPoolConfig,
   },
+  SNNCN:{
+    // server: "UTCSNCIMDB",
+    server: "10.23.65.44",
+    user: "snyip",
+    password: "sq4NM$*0",
+    database: "NCN",
+    options: defaultOptions,
+    pool: defaultPoolConfig,
+  },
+  S3Acme:{
+    server: "10.23.65.44",
+    user: "dc_read",
+    password: "ewFJ9%(4",
+    database: "acme",
+    options: defaultOptions,
+    pool: defaultPoolConfig,
+  }
 };
+
 
 // 連接池創建工廠
 const createPool = async (config, name) => {
@@ -143,17 +172,21 @@ const createPool = async (config, name) => {
   }
 };
 
+// 修改初始化和導出方式
+const poolObj = {};
+
 // 初始化所有連接池
 const initializePools = async () => {
-  const pools = {};
   for (const [name, config] of Object.entries(dbConfigs)) {
     try {
-      pools[`pool${name}`] = await createPool(config, name);
+      poolObj[`pool${name}`] = await createPool(config, name);
+      console.log(`Initialized pool for ${name}`);
     } catch (err) {
       console.error(`Failed to initialize ${name} pool`, err);
     }
   }
-  return pools;
+  console.log('All pools initialized:', Object.keys(poolObj));
+  return poolObj;
 };
 
 // 優雅關閉
@@ -169,6 +202,8 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// 初始化並導出連接池
-const poolObj = await initializePools();
-module.exports = poolObj;
+// 移除頂層 await
+module.exports = {
+  initializePools,
+  poolObj
+};

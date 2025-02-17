@@ -1,47 +1,107 @@
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 
-const mysqlConnection = (config) => {
-    return new Promise((resolve, reject) => {
-        const connection = mysql.createConnection(config);
-        connection.connect((err) => {
-            if (err) { reject(err) }
-            else {
-                resolve(connection)
-            }
-        })
-    })
-};
+// 連接池管理
+const pools = new Map();
 
-const queryFunc=(connection,sql,data)=>{
-    return new Promise((resolve, reject) => {
-        connection.query(sql,data, (err, results) => {
-            if (err) { reject(err) } else {
-                resolve(results)
-            }
-        })
-    })
-};
+/**
+ * 建立 MySQL 連接池
+ * @param {Object} config - 資料庫配置
+ * @returns {Promise<mysql.Pool>} 連接池實例
+ */
+async function createPool(config) {
+    const key = `${config.host}_${config.database}`;
+    if (!pools.has(key)) {
+        console.log('創建新連接池:', key);
+        const pool = mysql.createPool({
+            ...config,
+            waitForConnections: true,
+            connectionLimit: 200,
+            queueLimit: 0
+        });
+        pools.set(key, pool);
+    }
+    return pools.get(key);
+}
 
-// function query(params,callback){
-//     ////params 去處理一個查詢
+/**
+ * 獲取資料庫連接
+ * @param {Object} config - 資料庫配置
+ * @returns {Promise<mysql.Connection>} 資料庫連接
+ */
+async function mysqlConnection(config) {
+    try {
+        const pool = await createPool(config);
+        return pool;
+    } catch (error) {
+        console.error('建立連接失敗:', error);
+        throw error;
+    }
+}
 
+/**
+ * 執行 SQL 查詢
+ * @param {mysql.Connection} connection - 資料庫連接
+ * @param {string} sql - SQL 查詢語句
+ * @param {Array} [values] - 查詢參數
+ * @returns {Promise<any>} 查詢結果
+ */
+async function queryFunc(pool, sql, values = []) {
+    try {
+        const [results] = await pool.execute(sql, values);
+        return results;
+    } catch (error) {
+        console.error('查詢執行失敗:', error);
+        throw error;
+    }
+}
 
-
-
-//     let result=....;
-//     let error=....;
-//     callback(error,result)
+/**
+ * 定期執行心跳查詢以保持連接活躍
+ */
+// function startHeartbeat() {
+//     setInterval(async () => {
+//         for (const pool of pools.values()) {
+//             try {
+//                 const connection = await pool.getConnection();
+//                 await connection.query('SELECT 1');
+//                 connection.release();
+//             } catch (error) {
+//                 console.error('心跳查詢失敗:', error);
+//             }
+//         }
+//     }, 30000); // 每30秒執行一次
+// }
+// function startHeartbeat() {
+//     setInterval(async () => {
+//         for (const [key, pool] of pools.entries()) {
+//             try {
+//                 await pool.query('SELECT 1');
+//                 // console.log(`連接池 ${key} 心跳正常`);
+//             } catch (error) {
+//                 console.error(`連接池 ${key} 心跳查詢失敗:`, error);
+//                 // 如果心跳失敗，刪除問題連接池
+//                 pools.delete(key);
+//             }
+//         }
+//     }, 30000);
 // }
 
-// query(params,(err,result)=>{
-//     if(err){
-//         console.log(err)
-//     }else{
-//         console.log(result)
-//     }
-// })
+/**
+ * 在應用程序退出時關閉所有連接池
+ */
+function closePools() {
+    for (const pool of pools.values()) {
+        pool.end().catch(error => console.error('關閉連接池失敗:', error));
+    }
+}
 
-module.exports={
+process.on('SIGINT', closePools);
+process.on('SIGTERM', closePools);
+
+module.exports = {
     mysqlConnection,
-    queryFunc
+    queryFunc,
+    pools
 };
+// 在應用啟動時調用 startHeartbeat
+// startHeartbeat();

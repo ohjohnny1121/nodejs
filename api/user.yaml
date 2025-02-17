@@ -1,0 +1,455 @@
+openapi: 3.0.0
+info:
+  title: 用戶認證 API
+  description: 提供用戶登入、驗證和記錄相關的 API
+  version: 1.0.0
+
+servers:
+  - url: http://10.22.94.69:3000
+    description: 內部網絡服務器
+  - url: http://WYM2DNA4378:3000
+    description: 本地服務器
+ 
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "請輸入 JWT token，格式為: Bearer <token>"
+  
+  schemas:
+    StandardResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, error]
+          description: 響應狀態
+        message:
+          type: string
+          description: 響應訊息
+        time:
+          type: integer
+          description: 時間戳
+          
+    LoginRequest:
+      type: object
+      required:
+        - EMPID
+        - PWD
+      properties:
+        EMPID:
+          type: string
+          description: 用戶帳號
+        PWD:
+          type: string
+          description: 用戶密碼
+    
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            token:
+              type: string
+              description: JWT token
+            data:
+              type: object
+              properties:
+                Status:
+                  type: boolean
+                ErrDesc:
+                  type: string
+                company_id:
+                  type: string
+                id:
+                  type: string
+                name:
+                  type: string
+                DeptName:
+                  type: string
+                d1name:
+                  type: string
+                d2name:
+                  type: string
+                d3name:
+                  type: string
+                d4name:
+                  type: string
+                email:
+                  type: string
+                bossid:
+                  type: string
+                authority:
+                  type: array
+                  items:
+                    type: string
+
+    ReviseWhitelistRequest:
+      type: object
+      required:
+        - uid
+        - authority
+        - creator
+      properties:
+        uid:
+          type: string
+          description: 用戶ID
+        authority:
+          type: array
+          items:
+            type: string
+          description: 權限列表
+        creator:
+          type: string
+          description: 創建者ID
+
+    ReviseWhitelistResponse:
+      allOf:
+        - $ref: '#/components/schemas/StandardResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                uid:
+                  type: string
+                authority:
+                  type: array
+                  items:
+                    type: string
+                creator:
+                  type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          description: 響應狀態
+        message:
+          type: string
+          description: 響應訊息
+        time:
+          type: integer
+          description: 時間戳
+
+  responses:
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    Unauthorized:
+      description: 未登入
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    ServerError:
+      description: 服務器錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  /user/login:
+    post:
+      summary: 用戶登入
+      description: 驗證用戶憑證並返回 JWT token，並返回用戶資料、權限列表
+      tags:
+        - authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: 認證失敗
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardResponse'
+                  - example:
+                      status: error
+                      message: 用戶不存在或帳號密碼錯誤，請重新輸入
+                      time: 1234567890
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /user/verify:
+    get:
+      summary: 驗證用戶 Token
+      description: 驗證用戶的 JWT token 是否有效
+      tags:
+        - verify
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token 有效
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardResponse'
+                  - type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          DeptName:
+                            type: string
+                          email:
+                            type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 驗證錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+
+  /user/record:
+    post:
+      summary: 創建訪問記錄
+      description: 記錄用戶的訪問資訊
+      tags:
+        - 記錄
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ID
+                - Name
+                - DeptName
+                - Time
+                - Path
+              properties:
+                ID:
+                  type: string
+                  description: 用戶ID
+                Name:
+                  type: string
+                  description: 用戶名稱
+                DeptName:
+                  type: string
+                  description: 部門名稱
+                Time:
+                  type: string
+                  description: 訪問時間
+                Path:
+                  type: string
+                  description: 訪問路徑
+      responses:
+        '200':
+          description: 記錄成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /user/record/{st}:
+    get:
+      summary: 獲取訪問記錄數量
+      description: 獲取特定時間後的登入記錄數量
+      tags:
+        - 記錄
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: st
+          in: path
+          required: true
+          description: 起始時間戳記
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/StandardResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            Count:
+                              type: integer
+                              description: 記錄數量
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /user/revisewhitelist:
+    post:
+      summary: 修改用戶白名單權限
+      description: |
+        更新指定用戶的權限列表。
+        - 將用戶現有權限標記為刪除
+        - 插入新的權限記錄
+        - 使用事務確保數據一致性
+      tags:
+        - authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - uid
+                - authority
+                - creator
+              properties:
+                uid:
+                  type: string
+                  description: 用戶ID
+                  example: "A4378"
+                authority:
+                  type: array
+                  items:
+                    type: string
+                  description: 權限列表
+                  example: ["1673"]
+                creator:
+                  type: string
+                  description: 創建者ID
+                  example: "A4378"
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      uid:
+                        type: string
+                      authority:
+                        type: array
+                        items:
+                          type: string
+                      creator:
+                        type: string
+                  time:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /user/getwhitelist:
+    get:
+      summary: 獲取白名單列表
+      description: 獲取所有未刪除的白名單記錄
+      tags:
+        - authentication
+      responses:
+        '200':
+          description: 查詢成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [success]
+                    description: 響應狀態
+                    example: "success"
+                  message:
+                    type: string
+                    description: 響應訊息
+                    example: "成功"
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: 記錄ID
+                          example: "1"
+                        uid:
+                          type: string
+                          description: 用戶ID
+                          example: "A4378"
+                        authority:
+                          type: string
+                          description: 權限代碼
+                          example: "1673"
+                        creator:
+                          type: string
+                          description: 創建者ID
+                          example: "A4378"
+                        isdelete:
+                          type: string
+                          description: 是否刪除
+                          enum: ["true", "false"]
+                          example: "false"
+                        time:
+                          type: string
+                          description: 創建時間
+                          example: "2024-12-20 06:11:23"
+                  time:
+                    type: integer
+                    description: 時間戳
+                    example: 1703055083000
+        '500':
+          description: 服務器錯誤
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [error]
+                  message:
+                    type: string
+                    example: "查詢失敗"
+                  time:
+                    type: integer
+                    example: 1703055083000
